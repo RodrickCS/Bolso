@@ -53,7 +53,7 @@ Serve qualquer Postgres. Para usar o Supabase: crie um projeto, clique em **Conn
 
 ```bash
 cd mobile
-cp .env.example .env    # EXPO_PUBLIC_API_URL=http://IP-DO-SEU-PC:3333
+cp .env.example .env    # EXPO_PUBLIC_API_URL=http://IP-DO-SEU-PC:3000
 npm install
 npx expo start
 ```

@@ -2,8 +2,8 @@ import { fetch } from "expo/fetch";
 import { File } from "expo-file-system";
 
 // Endereço do back-end. Em desenvolvimento no celular, use o IP do computador na rede
-// (ex: http://192.168.0.10:3333), não "localhost". Configure em mobile/.env.
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3333";
+// (ex: http://192.168.0.10:3000), não "localhost". Configure em mobile/.env.
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
 let token = null;
 let aoExpirar = () => {};
