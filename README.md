@@ -15,6 +15,9 @@ Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do c
 - **Memória de categorias:** quando você corrige a categoria de um lugar, o Bolso lembra e nunca mais pergunta.
 - **Conciliação:** o mesmo gasto que chega pelo cupom e pela fatura é contado uma vez só. A fatura vale como valor oficial e o cupom guarda os itens. Fatura reenviada não duplica nada.
 - **Painel do mês** com gastos por categoria, entradas e saldo.
+- **Assistente do mês:** compara com o mês anterior, prevê o fechamento, aponta gastos fora do padrão e orçamentos estourando. As contas são feitas em código; a IA (Haiku) só escreve as dicas, no máximo uma vez por dia, por menos de US$ 0,001 cada. Sem IA, o cartão mostra os mesmos fatos em texto pronto.
+- **Orçamentos por categoria** com medidor e alerta a partir de 80%.
+- **Cobranças recorrentes detectadas** (assinaturas, aluguel...), avisando quando uma parou de cobrar.
 - **Custo da IA sob controle:** cada chamada à API do Claude é registrada, e o app mostra quanto dos créditos já foi usado no mês.
 - **Privacidade:** a foto ou o PDF original é apagado assim que é lido.
 
@@ -110,7 +113,8 @@ Lembre de definir um **limite de gasto mensal** no Claude Console.
 back/
   prisma/schema.prisma       modelos: Usuario, Conta, Categoria, Documento, Transacao, Item, Produto, RegraCategoria, UsoIa
   src/ia/                    cliente da API, schemas de saída, prompts e mocks
-  src/servicos/              fila, importação, conciliação, memória de categorias, parser de texto
+  src/servicos/              fila, importação, conciliação, memória de categorias, parser de texto,
+                             análises do assistente (assinaturas, previsão, orçamentos)
   src/rotas/                 auth, documentos, transações, painel, cadastros
   test/                      unitários + integração
 mobile/
@@ -121,8 +125,9 @@ mobile/
 ## Próximos passos
 
 - [ ] Ler o QR Code da NFC-e direto da SEFAZ (dados oficiais e grátis) e usar a IA só para categorizar
-- [ ] Orçamentos por categoria com alertas
-- [ ] Detectar assinaturas e gastos recorrentes
+- [x] Orçamentos por categoria com alertas
+- [x] Detectar assinaturas e gastos recorrentes
+- [x] Previsão do fim do mês (no assistente)
 - [ ] Inflação pessoal e comparação de preços entre mercados (os produtos já são normalizados)
 - [ ] Chat com os seus dados ("quanto gastei com transporte desde agosto?")
-- [ ] Previsão do fim do mês e resumo semanal
+- [ ] Resumo semanal por notificação

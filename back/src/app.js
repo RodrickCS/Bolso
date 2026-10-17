@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import { autenticar } from "./middlewares/autenticar.js";
 import { tratarErros } from "./middlewares/erros.js";
+import { rotasAssistente } from "./rotas/assistente.js";
 import { rotasAuth } from "./rotas/auth.js";
 import { rotasCadastros } from "./rotas/cadastros.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
@@ -33,6 +34,7 @@ app.use("/auth", rotasAuth);
 app.use(autenticar);
 app.use("/", rotasCadastros);
 app.use("/", rotasPainel);
+app.use("/", rotasAssistente);
 app.use("/documentos", rotasDocumentos);
 app.use("/transacoes", rotasTransacoes);
 

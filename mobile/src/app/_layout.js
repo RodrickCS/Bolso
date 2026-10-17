@@ -11,6 +11,15 @@ function Rotas() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.fundo } }}>
       <Stack.Protected guard={logado}>
         <Stack.Screen name="(abas)" />
+        <Stack.Screen
+          name="orcamentos"
+          options={{
+            headerShown: true,
+            title: "Orçamentos",
+            headerStyle: { backgroundColor: cores.fundo },
+            headerShadowVisible: false,
+          }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!logado}>
         <Stack.Screen name="entrar" />

@@ -148,3 +148,52 @@ test("validações devolvem mensagens claras", opcoes, async () => {
   const duplicado = await chamar(null, "POST", "/auth/registrar", { nome: "x", email: "validacao@teste.com", senha: "12345678" });
   assert.equal(duplicado.status, 409);
 });
+
+test("orçamentos, assinaturas e assistente (sem IA no modo mock, com cache)", opcoes, async () => {
+  const token = await cadastrar("assistente@teste.com");
+  const categorias = (await chamar(token, "GET", "/categorias")).corpo;
+  const id = (nome) => categorias.find((c) => c.nome === nome).id;
+
+  // Datas relativas ao mês atual, para o teste funcionar em qualquer dia
+  const agora = new Date();
+  const diaDoMes = (mesesAtras, dia) =>
+    new Date(Date.UTC(agora.getFullYear(), agora.getMonth() - mesesAtras, dia)).toISOString().slice(0, 10);
+  const lancar = (valor, data, descricao, categoria) =>
+    chamar(token, "POST", "/transacoes", { valor, data, descricao, categoriaId: id(categoria) });
+
+  // Sem "tipo", o lançamento herda o tipo da categoria: Salário vira entrada
+  const salario = (await lancar(4500, diaDoMes(0, 1), "Salário", "Salário")).corpo;
+  assert.equal(salario.tipo, "RECEITA");
+
+  for (const mesesAtras of [2, 1, 0]) await lancar(44.9, diaDoMes(mesesAtras, 5), "Netflix", "Assinaturas");
+  await lancar(120, diaDoMes(0, 2), "Show", "Lazer");
+
+  // Orçamento: cria, valida e mostra a situação
+  assert.equal((await chamar(token, "PUT", `/orcamentos/${id("Lazer")}`, { valorMensal: 0 })).status, 400);
+  assert.equal((await chamar(token, "PUT", `/orcamentos/${id("Lazer")}`, { valorMensal: 100 })).status, 200);
+  const [lazer] = (await chamar(token, "GET", "/orcamentos")).corpo;
+  assert.deepEqual(
+    { categoria: lazer.categoria, gasto: lazer.gasto, limite: lazer.limite, percentual: lazer.percentual, situacao: lazer.situacao },
+    { categoria: "Lazer", gasto: 120, limite: 100, percentual: 120, situacao: "estourado" },
+  );
+
+  const { assinaturas, totalMensal } = (await chamar(token, "GET", "/assinaturas")).corpo;
+  assert.deepEqual(assinaturas.map((a) => [a.nome, a.valorMensal, a.ativa]), [["Netflix", 44.9, true]]);
+  assert.equal(totalMensal, 44.9);
+
+  // Assistente: sem IA, as dicas são os próprios fatos, com o orçamento estourado primeiro
+  const primeira = (await chamar(token, "GET", "/assistente")).corpo;
+  assert.equal(primeira.geradoPorIa, false);
+  assert.equal(primeira.dicas[0], "Você passou do orçamento de Lazer: R$\u00a0120,00 de R$\u00a0100,00.");
+  assert.ok(primeira.dicas.some((d) => d.includes("Netflix")));
+
+  // Mesmos fatos: devolve o que está guardado, sem gerar de novo
+  const segunda = (await chamar(token, "GET", "/assistente")).corpo;
+  assert.equal(segunda.geradoEm, primeira.geradoEm);
+
+  // Orçamento de outro usuário / inexistente
+  const outro = await cadastrar("outro-orcamento@teste.com");
+  assert.equal((await chamar(outro, "PUT", `/orcamentos/${id("Lazer")}`, { valorMensal: 50 })).status, 404);
+  assert.equal((await chamar(token, "DELETE", `/orcamentos/${id("Lazer")}`)).status, 204);
+  assert.equal((await chamar(token, "DELETE", `/orcamentos/${id("Lazer")}`)).status, 404);
+});

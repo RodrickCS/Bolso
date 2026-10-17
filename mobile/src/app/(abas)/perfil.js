@@ -15,6 +15,7 @@ const ROTULO_TAREFA = {
   "extrair:CONTA_CONSUMO": "Contas",
   "extrair:TEXTO": "Gastos por texto",
   categorizar: "Categorização",
+  assistente: "Assistente",
 };
 
 export default function Perfil() {

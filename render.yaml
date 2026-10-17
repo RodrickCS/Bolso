@@ -20,3 +20,6 @@ services:
         generateValue: true
       - key: IA_MOCK
         value: "false"
+      # "Hoje" no fuso do Brasil (previsão do mês, cache diário do assistente)
+      - key: TZ
+        value: America/Sao_Paulo

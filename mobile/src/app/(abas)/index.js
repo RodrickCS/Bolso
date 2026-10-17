@@ -1,6 +1,7 @@
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { CartaoAssistente, ListaAssinaturas, ListaOrcamentos } from "../../componentes/painel";
 import { Aviso, Cartao, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { mesAtual, reais } from "../../lib/formato";
@@ -40,13 +41,31 @@ function LinhaCategoria({ item, maior }) {
 export default function Painel() {
   const [mes, setMes] = useState(mesAtual());
   const [painel, setPainel] = useState(null);
+  const [orcamentos, setOrcamentos] = useState([]);
+  const [assinaturas, setAssinaturas] = useState(null);
+  const [assistente, setAssistente] = useState(null);
+  const [pensando, setPensando] = useState(false);
   const [erro, setErro] = useState(null);
   const [atualizando, setAtualizando] = useState(false);
 
   const carregar = useCallback(async () => {
+    // O assistente pode chamar a IA e demorar uns segundos: carrega à parte, sem segurar o painel
+    setPensando(true);
+    api
+      .assistente(mes)
+      .then(setAssistente)
+      .catch(() => setAssistente(null))
+      .finally(() => setPensando(false));
     try {
       setErro(null);
-      setPainel(await api.painel(mes));
+      const [resumo, listaOrcamentos, recorrentes] = await Promise.all([
+        api.painel(mes),
+        api.orcamentos(mes),
+        api.assinaturas(mes),
+      ]);
+      setPainel(resumo);
+      setOrcamentos(listaOrcamentos);
+      setAssinaturas(recorrentes);
     } catch (e) {
       setErro(e.message);
     }
@@ -74,6 +93,11 @@ export default function Painel() {
       <SeletorMes mes={mes} aoMudar={setMes} />
       <Aviso mensagem={erro} />
 
+      <CartaoAssistente
+        assistente={assistente?.mes === mes ? assistente : null}
+        carregando={pensando && assistente?.mes !== mes}
+      />
+
       {painel && (
         <>
           <Resumo titulo="Gastos do mês" valor={reais(painel.despesas)} destaque />
@@ -81,6 +105,8 @@ export default function Painel() {
             <Resumo titulo="Entradas" valor={reais(painel.receitas)} />
             <Resumo titulo="Saldo" valor={reais(painel.saldo)} />
           </View>
+
+          <ListaOrcamentos orcamentos={orcamentos} aoEditar={() => router.push("/orcamentos")} />
 
           <Text style={estilos.secao}>Para onde foi o dinheiro</Text>
           {painel.porCategoria.length === 0 ? (
@@ -92,6 +118,8 @@ export default function Painel() {
               ))}
             </Cartao>
           )}
+
+          <ListaAssinaturas dados={assinaturas} />
         </>
       )}
     </ScrollView>
@@ -104,7 +132,7 @@ const estilos = StyleSheet.create({
   resumo: { flex: 1, gap: 4 },
   resumoDestaque: { paddingVertical: espaco.g },
   resumoTitulo: { fontSize: 14, color: cores.textoSecundario },
-  resumoValor: { fontSize: 20, fontWeight: "700", color: cores.texto, fontVariant: ["tabular-nums"] },
+  resumoValor: { fontSize: 20, fontWeight: "700", color: cores.texto },
   resumoValorDestaque: { fontSize: 36 },
   secao: { fontSize: 17, fontWeight: "700", color: cores.texto, marginTop: espaco.p },
   categorias: { gap: espaco.m },

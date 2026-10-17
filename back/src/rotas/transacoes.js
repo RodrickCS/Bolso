@@ -24,7 +24,8 @@ const nova = z.object({
   valor: z.number().positive("o valor precisa ser maior que zero"),
   data: dataISO,
   descricao: z.string().trim().min(1, "informe uma descrição"),
-  tipo: z.enum(["DESPESA", "RECEITA"]).default("DESPESA"),
+  // Sem tipo, vale o da categoria (Salário é RECEITA); sem categoria, DESPESA
+  tipo: z.enum(["DESPESA", "RECEITA"]).optional(),
   categoriaId: z.number().int().positive().optional(),
   contaId: z.number().int().positive().optional(),
 });
@@ -87,8 +88,10 @@ rotasTransacoes.post(
     await garantirDono("conta", dados.contaId, req.usuarioId);
 
     const categoriaId = dados.categoriaId ?? (await escolherCategoria(req.usuarioId, dados.descricao));
+    const categoria = categoriaId && (await prisma.categoria.findUnique({ where: { id: categoriaId } }));
+    const tipo = dados.tipo ?? categoria?.tipo ?? "DESPESA";
     const criada = await prisma.$transaction((tx) =>
-      inserirTransacao(tx, { ...dados, categoriaId, usuarioId: req.usuarioId, origem: "MANUAL" }),
+      inserirTransacao(tx, { ...dados, tipo, categoriaId, usuarioId: req.usuarioId, origem: "MANUAL" }),
     );
     if (dados.categoriaId) await lembrarCategoria(req.usuarioId, dados.descricao, categoriaId);
     res.status(201).json(await prisma.transacao.findUnique({ where: { id: criada.id }, include: detalhes }));

@@ -52,6 +52,12 @@ export const api = {
   painel: (mes) => requisicao(`/painel?mes=${mes}`),
   usoIa: (mes) => requisicao(`/uso-ia?mes=${mes}`),
   categorias: () => requisicao("/categorias"),
+  assistente: (mes) => requisicao(`/assistente?mes=${mes}`),
+  assinaturas: (mes) => requisicao(`/assinaturas?mes=${mes}`),
+  orcamentos: (mes) => requisicao(`/orcamentos?mes=${mes}`),
+  salvarOrcamento: (categoriaId, valorMensal) =>
+    requisicao(`/orcamentos/${categoriaId}`, { metodo: "PUT", corpo: { valorMensal } }),
+  apagarOrcamento: (categoriaId) => requisicao(`/orcamentos/${categoriaId}`, { metodo: "DELETE" }),
 
   transacoes: (mes) => requisicao(`/transacoes?mes=${mes}`),
   editarTransacao: (id, dados) => requisicao(`/transacoes/${id}`, { metodo: "PATCH", corpo: dados }),

@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL") // Supabase: conexão via pooler (porta 6543, ?pgbouncer=true)
-  directUrl = env("DIRECT_URL")   // Supabase: conexão direta (porta 5432), usada nas migrations
+  directUrl = env("DIRECT_URL") // Supabase: conexão direta (porta 5432), usada nas migrations
 }
 
 enum TipoConta {
@@ -47,11 +47,11 @@ enum StatusDocumento {
 }
 
 model Usuario {
-  id         Int              @id @default(autoincrement())
+  id         Int                @id @default(autoincrement())
   nome       String
-  email      String           @unique
+  email      String             @unique
   senhaHash  String
-  criadoEm   DateTime         @default(now())
+  criadoEm   DateTime           @default(now())
   contas     Conta[]
   categorias Categoria[]
   transacoes Transacao[]
@@ -59,6 +59,8 @@ model Usuario {
   produtos   Produto[]
   regras     RegraCategoria[]
   usoIa      UsoIa[]
+  orcamentos Orcamento[]
+  resumos    ResumoAssistente[]
 }
 
 model Conta {
@@ -81,29 +83,30 @@ model Categoria {
   usuario    Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   transacoes Transacao[]
   regras     RegraCategoria[]
+  orcamentos Orcamento[]
 
   @@unique([usuarioId, nome])
 }
 
 // Arquivo ou texto enviado pelo usuário. O conteúdo é apagado depois de processado.
 model Documento {
-  id            Int             @id @default(autoincrement())
-  usuarioId     Int
-  contaId       Int?
-  tipo          TipoDocumento
-  status        StatusDocumento @default(PENDENTE)
-  mimeType      String?
-  conteudo      Bytes?
-  texto         String?
-  observacao    String?
-  erro          String?
-  tentativas    Int             @default(0)
-  tentarApos    DateTime?
-  criadoEm      DateTime        @default(now())
-  processadoEm  DateTime?
-  usuario       Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  conta         Conta?          @relation(fields: [contaId], references: [id], onDelete: SetNull)
-  transacoes    Transacao[]
+  id           Int             @id @default(autoincrement())
+  usuarioId    Int
+  contaId      Int?
+  tipo         TipoDocumento
+  status       StatusDocumento @default(PENDENTE)
+  mimeType     String?
+  conteudo     Bytes?
+  texto        String?
+  observacao   String?
+  erro         String?
+  tentativas   Int             @default(0)
+  tentarApos   DateTime?
+  criadoEm     DateTime        @default(now())
+  processadoEm DateTime?
+  usuario      Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  conta        Conta?          @relation(fields: [contaId], references: [id], onDelete: SetNull)
+  transacoes   Transacao[]
 
   @@index([status, criadoEm])
   @@index([usuarioId])
@@ -186,4 +189,30 @@ model UsoIa {
   usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId, criadoEm])
+}
+
+// Limite mensal de gasto por categoria
+model Orcamento {
+  id          Int       @id @default(autoincrement())
+  usuarioId   Int
+  categoriaId Int
+  valorMensal Decimal   @db.Decimal(12, 2)
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, categoriaId])
+}
+
+// Dicas do assistente guardadas para não chamar a IA toda vez que o painel abre
+model ResumoAssistente {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int
+  mes         String
+  fatosHash   String
+  dicas       Json
+  geradoPorIa Boolean
+  geradoEm    DateTime @default(now())
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, mes])
 }
