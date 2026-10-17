@@ -10,8 +10,9 @@ export function configurarSessao(novoToken, callbackExpirou) {
   if (callbackExpirou) aoExpirar = callbackExpirou;
 }
 
-async function requisicao(caminho, { metodo = "GET", corpo, limiteMs = 15_000 } = {}) {
-  // Sem limite de tempo, um servidor inalcançável deixa o app carregando para sempre
+async function requisicao(caminho, { metodo = "GET", corpo, limiteMs = 75_000 } = {}) {
+  // Sem limite de tempo, um servidor inalcançável deixa o app carregando para sempre.
+  // O limite é folgado porque no plano grátis do Render o servidor leva até ~1 minuto para acordar.
   const controle = new AbortController();
   const limite = setTimeout(() => controle.abort(), limiteMs);
   let resposta;
@@ -26,7 +27,9 @@ async function requisicao(caminho, { metodo = "GET", corpo, limiteMs = 15_000 } 
       signal: controle.signal,
     });
   } catch (erro) {
-    if (controle.signal.aborted) throw new Error("O servidor demorou demais para responder. Tente de novo.");
+    if (controle.signal.aborted) {
+      throw new Error("O servidor demorou demais para responder. Se ele estava dormindo, tente de novo em alguns segundos.");
+    }
     throw new Error(
       `Não consegui falar com o servidor em ${API_URL} (${erro.message}). Confira o endereço e se o celular está no mesmo Wi-Fi do computador.`,
     );
@@ -59,7 +62,7 @@ export const api = {
   enviarTexto: (texto) => requisicao("/documentos", { metodo: "POST", corpo: { texto } }),
   // arquivo: { base64, nome, mimeType }. Vai dentro de um JSON, o mesmo caminho das outras requisições.
   enviarArquivo: (arquivo, tipo) =>
-    requisicao("/documentos", { metodo: "POST", corpo: { arquivo, tipo }, limiteMs: 90_000 }),
+    requisicao("/documentos", { metodo: "POST", corpo: { arquivo, tipo }, limiteMs: 120_000 }),
 };
 
 // Consulta o documento até a IA terminar de ler (ou desistir depois de ~2 minutos)
