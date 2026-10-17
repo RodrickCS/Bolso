@@ -1,10 +1,13 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CartaoAssistente, ListaAssinaturas, ListaOrcamentos } from "../../componentes/painel";
 import { Aviso, Cartao, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { mesAtual, reais } from "../../lib/formato";
+import { saudacao } from "../../lib/saudacao";
+import { useSessao } from "../../lib/sessao";
 import { cores, espaco } from "../../lib/tema";
 
 function Resumo({ titulo, valor, destaque }) {
@@ -38,7 +41,20 @@ function LinhaCategoria({ item, maior }) {
   );
 }
 
+// Boas-vindas no topo, no lugar do título da tela. Frase pronta escolhida pelo horário e pelo dia.
+function BoasVindas() {
+  const { usuario } = useSessao();
+  const { titulo, frase } = saudacao(usuario?.nome);
+  return (
+    <View style={estilos.boasVindas}>
+      <Text style={estilos.boasVindasTitulo}>{titulo}</Text>
+      <Text style={estilos.boasVindasFrase}>{frase}</Text>
+    </View>
+  );
+}
+
 export default function Painel() {
+  const topo = useSafeAreaInsets().top;
   const [mes, setMes] = useState(mesAtual());
   const [painel, setPainel] = useState(null);
   const [orcamentos, setOrcamentos] = useState([]);
@@ -87,9 +103,10 @@ export default function Painel() {
 
   return (
     <ScrollView
-      contentContainerStyle={estilos.conteudo}
+      contentContainerStyle={[estilos.conteudo, { paddingTop: topo + espaco.g }]}
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={puxarParaAtualizar} tintColor={cores.marca} />}
     >
+      <BoasVindas />
       <SeletorMes mes={mes} aoMudar={setMes} />
       <Aviso mensagem={erro} />
 
@@ -128,6 +145,9 @@ export default function Painel() {
 
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: 12 },
+  boasVindas: { gap: 4, marginBottom: espaco.p },
+  boasVindasTitulo: { fontSize: 28, fontWeight: "700", color: cores.texto },
+  boasVindasFrase: { fontSize: 16, lineHeight: 22, color: cores.textoSecundario },
   resumos: { flexDirection: "row", gap: 12 },
   resumo: { flex: 1, gap: 4 },
   resumoDestaque: { paddingVertical: espaco.g },

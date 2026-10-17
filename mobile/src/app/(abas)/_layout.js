@@ -20,7 +20,10 @@ export default function LayoutAbas() {
         sceneStyle: { backgroundColor: cores.fundo },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Painel", tabBarIcon: icone("pie-chart-outline") }} />
+      <Tabs.Screen
+        name="index"
+        options={{ title: "Painel", headerShown: false, tabBarIcon: icone("pie-chart-outline") }}
+      />
       <Tabs.Screen name="gastos" options={{ title: "Gastos", tabBarIcon: icone("list-outline") }} />
       <Tabs.Screen name="adicionar" options={{ title: "Adicionar", tabBarIcon: icone("add-circle-outline") }} />
       <Tabs.Screen name="perfil" options={{ title: "Perfil", tabBarIcon: icone("person-circle-outline") }} />
