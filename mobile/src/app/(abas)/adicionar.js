@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as DocumentPicker from "expo-document-picker";
+import { File } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
@@ -18,15 +18,17 @@ const TIPOS = [
 ];
 
 const LADO_MAXIMO = 1000;
+const LIMITE_ARQUIVO = 10 * 1024 * 1024;
 
 // Foto menor = menos tokens na API e upload mais rápido. 1000px ainda é legível para a IA.
-async function reduzirFoto(asset) {
+// O base64 sai direto do editor de imagem: no Expo Go o app não tem permissão para ler o arquivo salvo.
+async function fotoEmBase64(asset) {
   const tamanho = asset.width >= asset.height ? { width: LADO_MAXIMO } : { height: LADO_MAXIMO };
   const contexto = ImageManipulator.manipulate(asset.uri);
   if (Math.max(asset.width, asset.height) > LADO_MAXIMO) contexto.resize(tamanho);
   const imagem = await contexto.renderAsync();
-  const salva = await imagem.saveAsync({ format: SaveFormat.JPEG, compress: 0.7 });
-  return salva.uri;
+  const salva = await imagem.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
+  return salva.base64;
 }
 
 function Resultado({ documento }) {
@@ -99,18 +101,21 @@ export default function Adicionar() {
     const escolha = daCamera ? await ImagePicker.launchCameraAsync(opcoes) : await ImagePicker.launchImageLibraryAsync(opcoes);
     if (escolha.canceled) return;
     acompanhar(async () =>
-      api.enviarArquivo({ uri: await reduzirFoto(escolha.assets[0]), nome: "foto.jpg", mimeType: "image/jpeg" }, tipo),
+      api.enviarArquivo({ base64: await fotoEmBase64(escolha.assets[0]), nome: "foto.jpg", mimeType: "image/jpeg" }, tipo),
     );
   }
 
+  // Seletor do próprio expo-file-system: os arquivos que ele devolve o app tem permissão para ler
   async function usarArquivo() {
-    const escolha = await DocumentPicker.getDocumentAsync({
-      type: ["application/pdf", "text/csv", "text/comma-separated-values", "application/x-ofx", "application/octet-stream", "image/*"],
-      copyToCacheDirectory: true,
+    const escolha = await File.pickFileAsync({
+      mimeTypes: ["application/pdf", "text/csv", "text/comma-separated-values", "application/x-ofx", "application/octet-stream", "image/*"],
     });
     if (escolha.canceled) return;
-    const { uri, name, mimeType } = escolha.assets[0];
-    acompanhar(() => api.enviarArquivo({ uri, nome: name, mimeType: mimeType ?? "application/octet-stream" }, tipo));
+    const arquivo = escolha.result;
+    acompanhar(async () => {
+      if (arquivo.size > LIMITE_ARQUIVO) throw new Error("Arquivo maior que 10 MB. Envie um arquivo menor.");
+      return api.enviarArquivo({ base64: await arquivo.base64(), nome: arquivo.name, mimeType: arquivo.type }, tipo);
+    });
   }
 
   return (

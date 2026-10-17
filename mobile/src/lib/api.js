@@ -1,5 +1,3 @@
-import { File } from "expo-file-system";
-
 // Endereço do back-end. Em desenvolvimento no celular, use o IP do computador na rede
 // (ex: http://192.168.0.10:3000), não "localhost". Configure em mobile/.env.
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
@@ -11,8 +9,6 @@ export function configurarSessao(novoToken, callbackExpirou) {
   token = novoToken;
   if (callbackExpirou) aoExpirar = callbackExpirou;
 }
-
-const LIMITE_ARQUIVO = 10 * 1024 * 1024;
 
 async function requisicao(caminho, { metodo = "GET", corpo, limiteMs = 15_000 } = {}) {
   // Sem limite de tempo, um servidor inalcançável deixa o app carregando para sempre
@@ -61,18 +57,9 @@ export const api = {
   documentos: () => requisicao("/documentos"),
   documento: (id) => requisicao(`/documentos/${id}`),
   enviarTexto: (texto) => requisicao("/documentos", { metodo: "POST", corpo: { texto } }),
-  // arquivo: { uri, nome, mimeType } vindo da câmera, da galeria ou do seletor de documentos.
-  // Vai em base64 dentro de um JSON: é o caminho mais previsível no Expo (o mesmo das outras requisições).
-  enviarArquivo: async (arquivo, tipo) => {
-    const local = new File(arquivo.uri);
-    if (local.size > LIMITE_ARQUIVO) throw new Error("Arquivo maior que 10 MB. Envie um arquivo menor.");
-    const base64 = await local.base64();
-    return requisicao("/documentos", {
-      metodo: "POST",
-      corpo: { arquivo: { base64, nome: arquivo.nome, mimeType: arquivo.mimeType }, tipo },
-      limiteMs: 90_000,
-    });
-  },
+  // arquivo: { base64, nome, mimeType }. Vai dentro de um JSON, o mesmo caminho das outras requisições.
+  enviarArquivo: (arquivo, tipo) =>
+    requisicao("/documentos", { metodo: "POST", corpo: { arquivo, tipo }, limiteMs: 90_000 }),
 };
 
 // Consulta o documento até a IA terminar de ler (ou desistir depois de ~2 minutos)
