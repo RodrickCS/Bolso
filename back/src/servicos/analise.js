@@ -27,8 +27,8 @@ function mesesEntre(a, b) {
   return (anoB - anoA) * 12 + (mesB - mesA);
 }
 
-// Assinatura = mesmo estabelecimento, valor quase igual (até 10% de diferença), no máximo 2 cobranças por mês,
-// em pelo menos 2 meses próximos. Uber e mercado ficam de fora por aparecerem muitas vezes no mês.
+// Assinatura = mesmo estabelecimento, valor quase igual (até 10% de diferença; 2% se só houver 2 meses),
+// no máximo 2 cobranças por mês, em pelo menos 2 meses próximos. Uber e mercado ficam de fora por aparecerem muitas vezes no mês.
 export function detectarAssinaturas(transacoes, hoje) {
   const grupos = new Map();
   for (const t of transacoes) {
@@ -49,8 +49,10 @@ export function detectarAssinaturas(transacoes, hoje) {
 
     const valores = lista.map((t) => Number(t.valor));
     const valorTipico = mediana(valores);
-    // Assinatura quase não muda de valor (no máximo um reajuste); compras de mercado variam bem mais
-    const parecidos = valores.filter((v) => Math.abs(v - valorTipico) <= valorTipico * 0.1).length;
+    // Assinatura quase não muda de valor (no máximo um reajuste); compras de mercado variam bem mais.
+    // Com só 2 meses, duas idas ao mercado de valor parecido enganariam: aí o valor tem que ser praticamente igual.
+    const tolerancia = meses.length === 2 ? 0.02 : 0.1;
+    const parecidos = valores.filter((v) => Math.abs(v - valorTipico) <= valorTipico * tolerancia).length;
     if (parecidos / valores.length < 0.8) continue;
 
     const ultima = lista.reduce((a, b) => (b.data > a.data ? b : a));

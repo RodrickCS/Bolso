@@ -16,6 +16,8 @@ function Rotas() {
         <Stack.Screen name="orcamentos" options={{ ...comCabecalho, title: "Orçamentos" }} />
         <Stack.Screen name="lancamento" options={{ ...comCabecalho, title: "Lançamento" }} />
         <Stack.Screen name="contas" options={{ ...comCabecalho, title: "Contas e cartões" }} />
+        <Stack.Screen name="produtos" options={{ ...comCabecalho, title: "Preços dos produtos" }} />
+        <Stack.Screen name="produto" options={{ ...comCabecalho, title: "Produto" }} />
       </Stack.Protected>
       <Stack.Protected guard={!logado}>
         <Stack.Screen name="entrar" />

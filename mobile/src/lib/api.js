@@ -80,6 +80,11 @@ export const api = {
   enviarArquivo: (arquivo, tipo, contaId) =>
     requisicao("/documentos", { metodo: "POST", corpo: { arquivo, tipo, contaId }, limiteMs: 120_000 }),
 
+  produtos: () => requisicao("/produtos"),
+  produto: (id) => requisicao(`/produtos/${id}`),
+  renomearProduto: (id, nome) => requisicao(`/produtos/${id}`, { metodo: "PATCH", corpo: { nome } }),
+  juntarProduto: (id, produtoId) => requisicao(`/produtos/${id}/juntar`, { metodo: "POST", corpo: { produtoId } }),
+
   exportarCsv: () => requisicao("/exportar", { comoTexto: true }),
   excluirMinhaConta: (senha) => requisicao("/minha-conta", { metodo: "DELETE", corpo: { senha } }),
 };

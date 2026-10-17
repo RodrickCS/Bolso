@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CartaoAssistente, ListaAssinaturas, ListaContas, ListaOrcamentos } from "../../componentes/painel";
+import { CartaoPrecos } from "../../componentes/precos";
 import { Aviso, Cartao, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { mesAtual, reais } from "../../lib/formato";
@@ -60,6 +61,7 @@ export default function Painel() {
   const [orcamentos, setOrcamentos] = useState([]);
   const [assinaturas, setAssinaturas] = useState(null);
   const [assistente, setAssistente] = useState(null);
+  const [precos, setPrecos] = useState(null);
   const [pensando, setPensando] = useState(false);
   const [erro, setErro] = useState(null);
   const [atualizando, setAtualizando] = useState(false);
@@ -72,6 +74,7 @@ export default function Painel() {
       .then(setAssistente)
       .catch(() => setAssistente(null))
       .finally(() => setPensando(false));
+    api.produtos().then(setPrecos).catch(() => setPrecos(null));
     try {
       setErro(null);
       const [resumo, listaOrcamentos, recorrentes] = await Promise.all([
@@ -138,6 +141,7 @@ export default function Painel() {
 
           <ListaContas porConta={painel.porConta} />
           <ListaAssinaturas dados={assinaturas} />
+          <CartaoPrecos dados={precos} aoTocar={() => router.push("/produtos")} />
         </>
       )}
     </ScrollView>

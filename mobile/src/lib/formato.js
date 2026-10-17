@@ -58,3 +58,12 @@ export function hojeISO() {
   const agora = new Date();
   return new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
+
+// 12 -> "+12,0%" | -3.25 -> "−3,3%" (sinal de menos de verdade, que não some ao lado do número)
+export function variacao(percentual) {
+  const texto = Math.abs(percentual).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return `${percentual > 0 ? "+" : percentual < 0 ? "−" : ""}${texto}%`;
+}
+
+// "Café" -> "Cafe", para a busca achar com ou sem acento
+export const semAcentos = (texto) => texto.normalize("NFD").replace(/[̀-ͯ]/g, "");

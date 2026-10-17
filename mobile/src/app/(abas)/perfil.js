@@ -114,6 +114,7 @@ export default function Perfil() {
       <Cartao style={{ paddingVertical: 4 }}>
         <ItemMenu icone="card-outline" titulo="Contas e cartões" aoTocar={() => router.push("/contas")} />
         <ItemMenu icone="pie-chart-outline" titulo="Orçamentos" aoTocar={() => router.push("/orcamentos")} />
+        <ItemMenu icone="pricetags-outline" titulo="Preços dos produtos" aoTocar={() => router.push("/produtos")} />
       </Cartao>
 
       <Text style={estilos.secao}>Uso da IA em {nomeDoMes(mes).toLowerCase()}</Text>

@@ -19,6 +19,7 @@ Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do c
 - **Orçamentos por categoria** com medidor e alerta a partir de 80%.
 - **Cobranças recorrentes detectadas** (assinaturas, aluguel...), avisando quando uma parou de cobrar.
 - **Custo da IA sob controle:** cada chamada à API do Claude é registrada, e o app mostra quanto dos créditos já foi usado no mês.
+- **Inflação pessoal e preços:** cada item dos cupons vira um produto com histórico de preço. O Bolso mostra quanto cada um subiu desde a primeira compra, em qual mercado ele sai mais barato e um índice da sua inflação pessoal (a média das variações, com mais peso para o que você mais compra). Tudo calculado em código, sem gastar IA. Se a IA der dois nomes ao mesmo produto, dá para renomear ou juntar.
 - **Contas e cartões:** cada lançamento pode ser ligado a um cartão ou conta, e o painel mostra quanto saiu de cada um no mês.
 - **Edição completa e lançamento manual:** corrija valor, data, descrição, categoria e conta, ou lance um gasto à mão, sem IA.
 - **Histórico de envios:** veja o que foi lido, o que deu erro, e apague um envio junto com os lançamentos dele se a leitura saiu errada.
@@ -114,14 +115,17 @@ Lembre de definir um **limite de gasto mensal** no Claude Console.
 
 ```
 back/
-  prisma/schema.prisma       modelos: Usuario, Conta, Categoria, Documento, Transacao, Item, Produto, RegraCategoria, UsoIa
+  prisma/schema.prisma       modelos: Usuario, Conta, Categoria, Documento, Transacao, Item, Produto, RegraCategoria, UsoIa,
+                             Orcamento, ResumoAssistente
   src/ia/                    cliente da API, schemas de saída, prompts e mocks
   src/servicos/              fila, importação, conciliação, memória de categorias, parser de texto,
-                             análises do assistente (assinaturas, previsão, orçamentos)
-  src/rotas/                 auth, documentos, transações, painel, cadastros
+                             análises do assistente (assinaturas, previsão, orçamentos), preços dos produtos
+  src/rotas/                 auth, documentos, transações, painel, cadastros, assistente, produtos, dados
   test/                      unitários + integração
 mobile/
-  src/app/                   rotas (Expo Router): entrar, (abas)/painel, gastos, adicionar, perfil
+  src/app/                   rotas (Expo Router): entrar, (abas)/painel, gastos, adicionar, perfil,
+                             lançamento, contas, orçamentos, produtos, produto
+  src/componentes/           peças das telas (painel, histórico de envios, gráfico de preço)
   src/lib/                   cliente da API, sessão, formatação, tema
 ```
 
@@ -131,6 +135,6 @@ mobile/
 - [x] Orçamentos por categoria com alertas
 - [x] Detectar assinaturas e gastos recorrentes
 - [x] Previsão do fim do mês (no assistente)
-- [ ] Inflação pessoal e comparação de preços entre mercados (os produtos já são normalizados)
+- [x] Inflação pessoal e comparação de preços entre mercados
 - [ ] Chat com os seus dados ("quanto gastei com transporte desde agosto?")
 - [ ] Resumo semanal por notificação

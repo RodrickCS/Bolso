@@ -37,6 +37,9 @@ test("detecta assinaturas e ignora gastos frequentes", () => {
     // Mercado uma vez por mês, mas com valor variando: não é assinatura
     gasto("2026-09-04", 488.9, "Supermercado"),
     gasto("2026-10-04", 612.4, "Supermercado"),
+    // Duas idas ao mercado com valor parecido (7% de diferença) em só 2 meses: ainda não é assinatura
+    gasto("2026-09-15", 81.37, "Compra no mercado", { estabelecimento: "Supermercado Bom Preço" }),
+    gasto("2026-10-15", 87.4, "Compra no mercado", { estabelecimento: "Supermercado Bom Preço" }),
     // Parcela não conta como assinatura
     gasto("2026-09-20", 59.9, "Fone", { parcelaTotal: 5 }),
     gasto("2026-10-20", 59.9, "Fone", { parcelaTotal: 5 }),
