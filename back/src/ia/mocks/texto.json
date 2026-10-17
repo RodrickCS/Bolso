@@ -1,0 +1,16 @@
+{
+  "transacoes": [
+    {
+      "data": "{{HOJE}}",
+      "descricao": "Almoço",
+      "estabelecimento": "Restaurante",
+      "valor": 32,
+      "tipo": "DESPESA",
+      "categoria": "Restaurantes e delivery",
+      "parcela_atual": null,
+      "parcela_total": null,
+      "itens": []
+    }
+  ],
+  "observacao": null
+}

@@ -1,0 +1,22 @@
+{
+  "transacoes": [
+    {
+      "data": "{{HOJE}}",
+      "descricao": "Compra no mercado",
+      "estabelecimento": "Supermercado Bom Preço",
+      "valor": 87.4,
+      "tipo": "DESPESA",
+      "categoria": "Mercado",
+      "parcela_atual": null,
+      "parcela_total": null,
+      "itens": [
+        { "descricao": "CAFE PILAO TRAD 500G", "nome_canonico": "Café Pilão 500g", "quantidade": 1, "preco_total": 21.9 },
+        { "descricao": "ARROZ T1 CAMIL 5KG", "nome_canonico": "Arroz Camil 5kg", "quantidade": 1, "preco_total": 27.9 },
+        { "descricao": "BANANA PRATA KG", "nome_canonico": "Banana prata (kg)", "quantidade": 1.2, "preco_total": 8.4 },
+        { "descricao": "DET YPE 500ML", "nome_canonico": "Detergente Ypê 500ml", "quantidade": 3, "preco_total": 8.7 },
+        { "descricao": "LEITE ITALAC INT 1L", "nome_canonico": "Leite Italac integral 1L", "quantidade": 4, "preco_total": 20.5 }
+      ]
+    }
+  ],
+  "observacao": null
+}

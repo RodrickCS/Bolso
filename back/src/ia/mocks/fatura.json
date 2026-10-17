@@ -1,0 +1,49 @@
+{
+  "transacoes": [
+    {
+      "data": "{{HOJE}}",
+      "descricao": "Supermercado Bom Preço",
+      "estabelecimento": "SUPERMERCADO BOM PRECO",
+      "valor": 87.4,
+      "tipo": "DESPESA",
+      "categoria": "Mercado",
+      "parcela_atual": null,
+      "parcela_total": null,
+      "itens": []
+    },
+    {
+      "data": "{{HOJE}}",
+      "descricao": "Uber",
+      "estabelecimento": "UBER *TRIP",
+      "valor": 23.15,
+      "tipo": "DESPESA",
+      "categoria": "Transporte",
+      "parcela_atual": null,
+      "parcela_total": null,
+      "itens": []
+    },
+    {
+      "data": "{{HOJE}}",
+      "descricao": "Netflix",
+      "estabelecimento": "NETFLIX.COM",
+      "valor": 44.9,
+      "tipo": "DESPESA",
+      "categoria": "Assinaturas",
+      "parcela_atual": null,
+      "parcela_total": null,
+      "itens": []
+    },
+    {
+      "data": "{{HOJE}}",
+      "descricao": "Fone de ouvido",
+      "estabelecimento": "MERCADOLIVRE*LOJA",
+      "valor": 59.9,
+      "tipo": "DESPESA",
+      "categoria": "Compras",
+      "parcela_atual": 2,
+      "parcela_total": 5,
+      "itens": []
+    }
+  ],
+  "observacao": null
+}

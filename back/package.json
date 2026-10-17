@@ -1,0 +1,31 @@
+{
+  "name": "bolso-api",
+  "version": "1.0.0",
+  "description": "API do Bolso: controle de gastos com IA",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "build": "prisma generate && prisma migrate deploy",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^4.22.3",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.3"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}

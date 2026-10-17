@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Supabase: conexão via pooler (porta 6543, ?pgbouncer=true)
+  directUrl = env("DIRECT_URL")   // Supabase: conexão direta (porta 5432), usada nas migrations
+}
+
+enum TipoConta {
+  CORRENTE
+  CREDITO
+  POUPANCA
+  DINHEIRO
+}
+
+enum TipoTransacao {
+  DESPESA
+  RECEITA
+}
+
+enum OrigemTransacao {
+  MANUAL
+  TEXTO
+  CUPOM
+  FATURA
+  EXTRATO
+  COMPROVANTE
+  CONTA_CONSUMO
+}
+
+enum TipoDocumento {
+  TEXTO
+  CUPOM
+  FATURA
+  EXTRATO
+  COMPROVANTE
+  CONTA_CONSUMO
+}
+
+enum StatusDocumento {
+  PENDENTE
+  PROCESSANDO
+  PRONTO
+  ERRO
+}
+
+model Usuario {
+  id         Int              @id @default(autoincrement())
+  nome       String
+  email      String           @unique
+  senhaHash  String
+  criadoEm   DateTime         @default(now())
+  contas     Conta[]
+  categorias Categoria[]
+  transacoes Transacao[]
+  documentos Documento[]
+  produtos   Produto[]
+  regras     RegraCategoria[]
+  usoIa      UsoIa[]
+}
+
+model Conta {
+  id         Int         @id @default(autoincrement())
+  usuarioId  Int
+  nome       String
+  tipo       TipoConta
+  usuario    Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  transacoes Transacao[]
+  documentos Documento[]
+
+  @@index([usuarioId])
+}
+
+model Categoria {
+  id         Int              @id @default(autoincrement())
+  usuarioId  Int
+  nome       String
+  tipo       TipoTransacao    @default(DESPESA)
+  usuario    Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  transacoes Transacao[]
+  regras     RegraCategoria[]
+
+  @@unique([usuarioId, nome])
+}
+
+// Arquivo ou texto enviado pelo usuário. O conteúdo é apagado depois de processado.
+model Documento {
+  id            Int             @id @default(autoincrement())
+  usuarioId     Int
+  contaId       Int?
+  tipo          TipoDocumento
+  status        StatusDocumento @default(PENDENTE)
+  mimeType      String?
+  conteudo      Bytes?
+  texto         String?
+  observacao    String?
+  erro          String?
+  tentativas    Int             @default(0)
+  tentarApos    DateTime?
+  criadoEm      DateTime        @default(now())
+  processadoEm  DateTime?
+  usuario       Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  conta         Conta?          @relation(fields: [contaId], references: [id], onDelete: SetNull)
+  transacoes    Transacao[]
+
+  @@index([status, criadoEm])
+  @@index([usuarioId])
+}
+
+model Transacao {
+  id              Int             @id @default(autoincrement())
+  usuarioId       Int
+  contaId         Int?
+  categoriaId     Int?
+  documentoId     Int?
+  tipo            TipoTransacao   @default(DESPESA)
+  origem          OrigemTransacao
+  valor           Decimal         @db.Decimal(12, 2)
+  data            DateTime        @db.Date
+  descricao       String
+  estabelecimento String?
+  parcelaAtual    Int?
+  parcelaTotal    Int?
+  // Quando o mesmo gasto aparece duas vezes (cupom + fatura), a cópia aponta
+  // para a transação "oficial" e deixa de ser somada no painel.
+  conciliadaComId Int?
+  criadoEm        DateTime        @default(now())
+  usuario         Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  conta           Conta?          @relation(fields: [contaId], references: [id], onDelete: SetNull)
+  categoria       Categoria?      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  documento       Documento?      @relation(fields: [documentoId], references: [id], onDelete: SetNull)
+  conciliadaCom   Transacao?      @relation("Conciliacao", fields: [conciliadaComId], references: [id], onDelete: SetNull)
+  duplicatas      Transacao[]     @relation("Conciliacao")
+  itens           Item[]
+
+  @@index([usuarioId, data])
+}
+
+// Itens de um cupom fiscal
+model Item {
+  id          Int       @id @default(autoincrement())
+  transacaoId Int
+  produtoId   Int?
+  descricao   String
+  quantidade  Decimal   @db.Decimal(10, 3)
+  precoTotal  Decimal   @db.Decimal(12, 2)
+  transacao   Transacao @relation(fields: [transacaoId], references: [id], onDelete: Cascade)
+  produto     Produto?  @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+}
+
+// Nome canônico de um produto ("CAFE PILAO 500G" e "CAFÉ PILÃO TRAD 500" viram "Café Pilão 500g")
+model Produto {
+  id           Int     @id @default(autoincrement())
+  usuarioId    Int
+  nomeCanonico String
+  usuario      Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  itens        Item[]
+
+  @@unique([usuarioId, nomeCanonico])
+}
+
+// Memória de categorias: estabelecimento já visto -> categoria, sem chamar a IA de novo
+model RegraCategoria {
+  id          Int       @id @default(autoincrement())
+  usuarioId   Int
+  padrao      String
+  categoriaId Int
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, padrao])
+}
+
+// Cada chamada à API do Claude, para acompanhar quanto dos créditos já foi usado
+model UsoIa {
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int
+  tarefa        String
+  modelo        String
+  tokensEntrada Int
+  tokensSaida   Int
+  custoUsd      Decimal  @db.Decimal(10, 6)
+  criadoEm      DateTime @default(now())
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, criadoEm])
+}
