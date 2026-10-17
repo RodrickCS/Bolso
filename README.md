@@ -19,7 +19,10 @@ Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do c
 - **Orçamentos por categoria** com medidor e alerta a partir de 80%.
 - **Cobranças recorrentes detectadas** (assinaturas, aluguel...), avisando quando uma parou de cobrar.
 - **Custo da IA sob controle:** cada chamada à API do Claude é registrada, e o app mostra quanto dos créditos já foi usado no mês.
-- **Privacidade:** a foto ou o PDF original é apagado assim que é lido.
+- **Contas e cartões:** cada lançamento pode ser ligado a um cartão ou conta, e o painel mostra quanto saiu de cada um no mês.
+- **Edição completa e lançamento manual:** corrija valor, data, descrição, categoria e conta, ou lance um gasto à mão, sem IA.
+- **Histórico de envios:** veja o que foi lido, o que deu erro, e apague um envio junto com os lançamentos dele se a leitura saiu errada.
+- **Privacidade:** a foto ou o PDF original é apagado assim que é lido. Você pode exportar todos os lançamentos em planilha (CSV para Excel) e excluir a conta com tudo dentro.
 
 ## Arquitetura
 

@@ -28,6 +28,32 @@ export function Botao({ titulo, aoTocar, icone, variante = "primario", carregand
   );
 }
 
+// Grupo de opções em "pílulas" (escolha única). opcoes: [{ valor, rotulo }]
+export function Opcoes({ opcoes, valor, aoMudar }) {
+  return (
+    <View style={estilos.opcoes} accessibilityRole="radiogroup">
+      {opcoes.map((o) => {
+        const ativa = o.valor === valor;
+        return (
+          <Pressable
+            key={String(o.valor)}
+            onPress={() => aoMudar(o.valor)}
+            style={[estilos.opcao, ativa && estilos.opcaoAtiva]}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: ativa }}
+          >
+            <Text style={[estilos.opcaoTexto, ativa && estilos.opcaoTextoAtiva]}>{o.rotulo}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function Rotulo({ children }) {
+  return <Text style={estilos.rotulo}>{children}</Text>;
+}
+
 export function Campo(props) {
   return <TextInput placeholderTextColor={cores.textoSuave} style={estilos.campo} {...props} />;
 }
@@ -110,6 +136,20 @@ const estilos = StyleSheet.create({
   avisoTexto: { color: cores.erro, flex: 1, fontSize: 14 },
   seletor: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: espaco.p },
   seletorTexto: { fontSize: 17, fontWeight: "600", color: cores.texto },
+  opcoes: { flexDirection: "row", flexWrap: "wrap", gap: espaco.p },
+  opcao: {
+    paddingHorizontal: 14,
+    minHeight: 36,
+    justifyContent: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: cores.borda,
+    backgroundColor: cores.superficie,
+  },
+  opcaoAtiva: { backgroundColor: cores.marca, borderColor: cores.marca },
+  opcaoTexto: { fontSize: 14, color: cores.texto },
+  opcaoTextoAtiva: { color: "#fff", fontWeight: "600" },
+  rotulo: { fontSize: 14, fontWeight: "600", color: cores.textoSecundario, marginTop: espaco.p },
   vazio: { alignItems: "center", gap: espaco.p, paddingVertical: 48 },
   vazioTexto: { color: cores.textoSecundario, textAlign: "center", fontSize: 15, maxWidth: 260 },
 });

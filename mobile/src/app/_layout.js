@@ -3,6 +3,8 @@ import { StatusBar } from "expo-status-bar";
 import { ProvedorSessao, useSessao } from "../lib/sessao";
 import { cores } from "../lib/tema";
 
+const comCabecalho = { headerShown: true, headerStyle: { backgroundColor: cores.fundo }, headerShadowVisible: false };
+
 function Rotas() {
   const { logado, carregando } = useSessao();
   if (carregando) return null;
@@ -11,15 +13,9 @@ function Rotas() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.fundo } }}>
       <Stack.Protected guard={logado}>
         <Stack.Screen name="(abas)" />
-        <Stack.Screen
-          name="orcamentos"
-          options={{
-            headerShown: true,
-            title: "Orçamentos",
-            headerStyle: { backgroundColor: cores.fundo },
-            headerShadowVisible: false,
-          }}
-        />
+        <Stack.Screen name="orcamentos" options={{ ...comCabecalho, title: "Orçamentos" }} />
+        <Stack.Screen name="lancamento" options={{ ...comCabecalho, title: "Lançamento" }} />
+        <Stack.Screen name="contas" options={{ ...comCabecalho, title: "Contas e cartões" }} />
       </Stack.Protected>
       <Stack.Protected guard={!logado}>
         <Stack.Screen name="entrar" />

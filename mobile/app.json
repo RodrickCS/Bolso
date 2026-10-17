@@ -32,7 +32,8 @@
           "cameraPermission": "O Bolso usa a câmera para fotografar cupons fiscais e comprovantes.",
           "photosPermission": "O Bolso acessa suas fotos para ler cupons e comprovantes salvos."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "scheme": "bolso"
   }

@@ -27,3 +27,34 @@ export function nomeDoMes(mes) {
 
 // "2026-10-17T00:00:00.000Z" -> "17/10"
 export const diaMes = (dataISO) => `${dataISO.slice(8, 10)}/${dataISO.slice(5, 7)}`;
+
+// "2026-10-17" (ou ISO completo) -> "17/10/2026"
+export const dataBR = (iso) => iso.slice(0, 10).split("-").reverse().join("/");
+
+// "17/10/2026" -> "2026-10-17"; null se a data não existe
+export function lerDataBR(texto) {
+  const partes = texto.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!partes) return null;
+  const [, dia, mes, ano] = partes.map(Number);
+  const data = new Date(Date.UTC(ano, mes - 1, dia));
+  if (data.getUTCMonth() !== mes - 1 || data.getUTCDate() !== dia) return null;
+  return data.toISOString().slice(0, 10);
+}
+
+// "1.250,50" -> 1250.5 | "35,90" e "35.90" -> 35.9 | "1.500" -> 1500 | "" -> null | inválido -> NaN
+export function lerValorBR(texto) {
+  let limpo = texto.replace(/r\$\s*/i, "").trim();
+  if (!limpo) return null;
+  if (limpo.includes(",")) limpo = limpo.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(limpo)) limpo = limpo.replace(/\./g, "");
+  const valor = Number(limpo);
+  return Number.isFinite(valor) && valor > 0 ? valor : NaN;
+}
+
+// 95.5 -> "95,50"
+export const valorParaCampo = (valor) => (valor ? Number(valor).toFixed(2).replace(".", ",") : "");
+
+export function hojeISO() {
+  const agora = new Date();
+  return new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}

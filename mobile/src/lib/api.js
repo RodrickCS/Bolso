@@ -10,7 +10,7 @@ export function configurarSessao(novoToken, callbackExpirou) {
   if (callbackExpirou) aoExpirar = callbackExpirou;
 }
 
-async function requisicao(caminho, { metodo = "GET", corpo, limiteMs = 75_000 } = {}) {
+async function requisicao(caminho, { metodo = "GET", corpo, limiteMs = 75_000, comoTexto = false } = {}) {
   // Sem limite de tempo, um servidor inalcançável deixa o app carregando para sempre.
   // O limite é folgado porque no plano grátis do Render o servidor leva até ~1 minuto para acordar.
   const controle = new AbortController();
@@ -38,6 +38,7 @@ async function requisicao(caminho, { metodo = "GET", corpo, limiteMs = 75_000 } 
   }
 
   if (resposta.status === 204) return null;
+  if (comoTexto && resposta.ok) return resposta.text();
   const dados = await resposta.json().catch(() => ({}));
   if (resposta.status === 401 && token) aoExpirar();
   if (!resposta.ok) throw new Error(dados.erro ?? `Erro ${resposta.status}`);
@@ -59,16 +60,28 @@ export const api = {
     requisicao(`/orcamentos/${categoriaId}`, { metodo: "PUT", corpo: { valorMensal } }),
   apagarOrcamento: (categoriaId) => requisicao(`/orcamentos/${categoriaId}`, { metodo: "DELETE" }),
 
+  contas: () => requisicao("/contas"),
+  criarConta: (dados) => requisicao("/contas", { metodo: "POST", corpo: dados }),
+  editarConta: (id, dados) => requisicao(`/contas/${id}`, { metodo: "PATCH", corpo: dados }),
+  apagarConta: (id) => requisicao(`/contas/${id}`, { metodo: "DELETE" }),
+
   transacoes: (mes) => requisicao(`/transacoes?mes=${mes}`),
+  transacao: (id) => requisicao(`/transacoes/${id}`),
+  criarTransacao: (dados) => requisicao("/transacoes", { metodo: "POST", corpo: dados }),
   editarTransacao: (id, dados) => requisicao(`/transacoes/${id}`, { metodo: "PATCH", corpo: dados }),
   apagarTransacao: (id) => requisicao(`/transacoes/${id}`, { metodo: "DELETE" }),
 
   documentos: () => requisicao("/documentos"),
   documento: (id) => requisicao(`/documentos/${id}`),
-  enviarTexto: (texto) => requisicao("/documentos", { metodo: "POST", corpo: { texto } }),
+  apagarDocumento: (id, comLancamentos) =>
+    requisicao(`/documentos/${id}${comLancamentos ? "?transacoes=true" : ""}`, { metodo: "DELETE" }),
+  enviarTexto: (texto, contaId) => requisicao("/documentos", { metodo: "POST", corpo: { texto, contaId } }),
   // arquivo: { base64, nome, mimeType }. Vai dentro de um JSON, o mesmo caminho das outras requisições.
-  enviarArquivo: (arquivo, tipo) =>
-    requisicao("/documentos", { metodo: "POST", corpo: { arquivo, tipo }, limiteMs: 120_000 }),
+  enviarArquivo: (arquivo, tipo, contaId) =>
+    requisicao("/documentos", { metodo: "POST", corpo: { arquivo, tipo, contaId }, limiteMs: 120_000 }),
+
+  exportarCsv: () => requisicao("/exportar", { comoTexto: true }),
+  excluirMinhaConta: (senha) => requisicao("/minha-conta", { metodo: "DELETE", corpo: { senha } }),
 };
 
 // Consulta o documento até a IA terminar de ler (ou desistir depois de ~2 minutos)

@@ -2,7 +2,7 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CartaoAssistente, ListaAssinaturas, ListaOrcamentos } from "../../componentes/painel";
+import { CartaoAssistente, ListaAssinaturas, ListaContas, ListaOrcamentos } from "../../componentes/painel";
 import { Aviso, Cartao, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { mesAtual, reais } from "../../lib/formato";
@@ -136,6 +136,7 @@ export default function Painel() {
             </Cartao>
           )}
 
+          <ListaContas porConta={painel.porConta} />
           <ListaAssinaturas dados={assinaturas} />
         </>
       )}

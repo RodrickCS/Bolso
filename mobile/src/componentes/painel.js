@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { PELO_TIPO } from "../lib/contas";
 import { diaMes, reais } from "../lib/formato";
 import { cores, espaco } from "../lib/tema";
 import { Cartao } from "./ui";
@@ -94,6 +95,27 @@ export function ListaOrcamentos({ orcamentos, aoEditar }) {
   );
 }
 
+// Quanto saiu de cada conta/cartão no mês
+export function ListaContas({ porConta }) {
+  if (!porConta?.length) return null;
+  return (
+    <>
+      <Text style={[estilos.secao, { marginTop: espaco.p }]}>Por conta e cartão</Text>
+      <Cartao style={{ gap: 12 }}>
+        {porConta.map((c) => (
+          <View key={c.contaId} style={estilos.linhaTopo}>
+            <View style={estilos.contaNome}>
+              <Ionicons name={PELO_TIPO[c.tipo]?.icone ?? "wallet-outline"} size={20} color={cores.marca} />
+              <Text style={estilos.nome} numberOfLines={1}>{c.conta}</Text>
+            </View>
+            <Text style={estilos.valor}>{reais(c.total)}</Text>
+          </View>
+        ))}
+      </Cartao>
+    </>
+  );
+}
+
 export function ListaAssinaturas({ dados }) {
   if (!dados?.assinaturas.length) return null;
   return (
@@ -140,4 +162,5 @@ const estilos = StyleSheet.create({
   legenda: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   textoSecundario: { fontSize: 13, color: cores.textoSecundario, fontWeight: "400" },
   inativa: { color: cores.textoSuave },
+  contaNome: { flexDirection: "row", alignItems: "center", gap: espaco.p, flexShrink: 1 },
 });

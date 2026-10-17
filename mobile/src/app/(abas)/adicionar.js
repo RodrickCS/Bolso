@@ -2,9 +2,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { File } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Aviso, Botao, Campo, Cartao } from "../../componentes/ui";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { HistoricoEnvios } from "../../componentes/historico";
+import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../../componentes/ui";
 import { aguardarDocumento, api } from "../../lib/api";
 import { reais } from "../../lib/formato";
 import { cores, espaco } from "../../lib/tema";
@@ -65,6 +67,36 @@ export default function Adicionar() {
   const [lendo, setLendo] = useState(false);
   const [documento, setDocumento] = useState(null);
   const [erro, setErro] = useState(null);
+  const [contas, setContas] = useState([]);
+  const [contaId, setContaId] = useState(null);
+  const [historico, setHistorico] = useState([]);
+
+  const carregarHistorico = useCallback(() => api.documentos().then(setHistorico).catch(() => {}), []);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarHistorico();
+      api.contas().then(setContas).catch(() => {});
+    }, [carregarHistorico]),
+  );
+
+  // Enquanto algum envio ainda estiver sendo lido, atualiza a lista sozinha
+  const temPendente = historico.some((d) => d.status === "PENDENTE" || d.status === "PROCESSANDO");
+  useEffect(() => {
+    if (!temPendente) return;
+    const intervalo = setInterval(carregarHistorico, 5000);
+    return () => clearInterval(intervalo);
+  }, [temPendente, carregarHistorico]);
+
+  async function apagarEnvio(doc, comLancamentos) {
+    try {
+      await api.apagarDocumento(doc.id, comLancamentos);
+      if (documento?.id === doc.id) setDocumento(null);
+      await carregarHistorico();
+    } catch (e) {
+      setErro(e.message);
+    }
+  }
 
   async function acompanhar(envio) {
     setErro(null);
@@ -72,18 +104,20 @@ export default function Adicionar() {
     setLendo(true);
     try {
       const enviado = await envio();
+      carregarHistorico();
       setDocumento(await aguardarDocumento(enviado.id));
     } catch (e) {
       setErro(e.message);
     } finally {
       setLendo(false);
+      carregarHistorico();
     }
   }
 
   function enviarTexto() {
     if (!texto.trim()) return;
     acompanhar(async () => {
-      const enviado = await api.enviarTexto(texto.trim());
+      const enviado = await api.enviarTexto(texto.trim(), contaId ?? undefined);
       setTexto("");
       return enviado;
     });
@@ -101,7 +135,11 @@ export default function Adicionar() {
     const escolha = daCamera ? await ImagePicker.launchCameraAsync(opcoes) : await ImagePicker.launchImageLibraryAsync(opcoes);
     if (escolha.canceled) return;
     acompanhar(async () =>
-      api.enviarArquivo({ base64: await fotoEmBase64(escolha.assets[0]), nome: "foto.jpg", mimeType: "image/jpeg" }, tipo),
+      api.enviarArquivo(
+        { base64: await fotoEmBase64(escolha.assets[0]), nome: "foto.jpg", mimeType: "image/jpeg" },
+        tipo,
+        contaId ?? undefined,
+      ),
     );
   }
 
@@ -114,7 +152,11 @@ export default function Adicionar() {
     const arquivo = escolha.result;
     acompanhar(async () => {
       if (arquivo.size > LIMITE_ARQUIVO) throw new Error("Arquivo maior que 10 MB. Envie um arquivo menor.");
-      return api.enviarArquivo({ base64: await arquivo.base64(), nome: arquivo.name, mimeType: arquivo.type }, tipo);
+      return api.enviarArquivo(
+        { base64: await arquivo.base64(), nome: arquivo.name, mimeType: arquivo.type },
+        tipo,
+        contaId ?? undefined,
+      );
     });
   }
 
@@ -131,21 +173,26 @@ export default function Adicionar() {
           editable={!lendo}
         />
         <Botao titulo="Adicionar" icone="send" aoTocar={enviarTexto} desativado={lendo || !texto.trim()} />
+        <Botao
+          titulo="Preencher à mão (sem IA)"
+          icone="create-outline"
+          variante="secundario"
+          aoTocar={() => router.push("/lancamento")}
+        />
+
+        {contas.length > 0 && (
+          <>
+            <Rotulo>Pagou com</Rotulo>
+            <Opcoes
+              opcoes={[{ valor: null, rotulo: "Não informar" }, ...contas.map((c) => ({ valor: c.id, rotulo: c.nome }))]}
+              valor={contaId}
+              aoMudar={setContaId}
+            />
+          </>
+        )}
 
         <Text style={[estilos.secao, { marginTop: espaco.m }]}>Ou envie um documento</Text>
-        <View style={estilos.tipos}>
-          {TIPOS.map((t) => (
-            <Pressable
-              key={t.valor}
-              onPress={() => setTipo(t.valor)}
-              style={[estilos.tipo, tipo === t.valor && estilos.tipoAtivo]}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: tipo === t.valor }}
-            >
-              <Text style={[estilos.tipoTexto, tipo === t.valor && estilos.tipoTextoAtivo]}>{t.rotulo}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <Opcoes opcoes={TIPOS} valor={tipo} aoMudar={setTipo} />
         <Botao titulo="Tirar foto" icone="camera-outline" aoTocar={() => usarFoto(true)} desativado={lendo} />
         <Botao titulo="Escolher da galeria" icone="images-outline" variante="secundario" aoTocar={() => usarFoto(false)} desativado={lendo} />
         <Botao titulo="Arquivo (PDF, CSV, OFX)" icone="document-outline" variante="secundario" aoTocar={usarArquivo} desativado={lendo} />
@@ -158,6 +205,12 @@ export default function Adicionar() {
         )}
         <Aviso mensagem={erro} />
         {documento && <Resultado documento={documento} />}
+
+        <HistoricoEnvios
+          documentos={historico}
+          aoApagar={apagarEnvio}
+          aoReenviarTexto={(doc) => acompanhar(() => api.enviarTexto(doc.texto, doc.contaId ?? undefined))}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -166,19 +219,6 @@ export default function Adicionar() {
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: 12, paddingBottom: 40 },
   secao: { fontSize: 17, fontWeight: "700", color: cores.texto },
-  tipos: { flexDirection: "row", flexWrap: "wrap", gap: espaco.p },
-  tipo: {
-    paddingHorizontal: 14,
-    minHeight: 36,
-    justifyContent: "center",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    backgroundColor: cores.superficie,
-  },
-  tipoAtivo: { backgroundColor: cores.marca, borderColor: cores.marca },
-  tipoTexto: { fontSize: 14, color: cores.texto },
-  tipoTextoAtivo: { color: "#fff", fontWeight: "600" },
   lendo: { flexDirection: "row", alignItems: "center", gap: 12 },
   lendoTexto: { flex: 1, color: cores.textoSecundario },
   resultadoTopo: { flexDirection: "row", alignItems: "center", gap: espaco.p },

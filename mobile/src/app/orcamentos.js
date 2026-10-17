@@ -4,16 +4,8 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Aviso, Botao } from "../componentes/ui";
 import { api } from "../lib/api";
-import { mesAtual } from "../lib/formato";
+import { lerValorBR, mesAtual } from "../lib/formato";
 import { cores, espaco, raio } from "../lib/tema";
-
-// "300" -> 300 | "1.250,50" -> 1250.5 | "" -> null
-function lerValor(texto) {
-  const limpo = texto.replace(/\./g, "").replace(",", ".").trim();
-  if (!limpo) return null;
-  const valor = Number(limpo);
-  return Number.isFinite(valor) && valor > 0 ? valor : NaN;
-}
 
 const mostrarValor = (valor) => (valor ? String(valor).replace(".", ",") : "");
 
@@ -38,7 +30,7 @@ export default function Orcamentos() {
   async function salvar() {
     setErro(null);
     const mudancas = categorias.filter((c) => (valores[c.id] ?? "") !== (originais[c.id] ?? ""));
-    const invalida = mudancas.find((c) => Number.isNaN(lerValor(valores[c.id] ?? "")));
+    const invalida = mudancas.find((c) => Number.isNaN(lerValorBR(valores[c.id] ?? "")));
     if (invalida) {
       setErro(`Valor inválido em ${invalida.nome}. Use só números, como 300 ou 250,50.`);
       return;
@@ -47,7 +39,7 @@ export default function Orcamentos() {
     try {
       await Promise.all(
         mudancas.map((c) => {
-          const valor = lerValor(valores[c.id] ?? "");
+          const valor = lerValorBR(valores[c.id] ?? "");
           return valor === null ? api.apagarOrcamento(c.id) : api.salvarOrcamento(c.id, valor);
         }),
       );

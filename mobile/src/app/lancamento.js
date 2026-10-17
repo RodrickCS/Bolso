@@ -1,0 +1,173 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../componentes/ui";
+import { api } from "../lib/api";
+import { dataBR, hojeISO, lerDataBR, lerValorBR, reais, valorParaCampo } from "../lib/formato";
+import { cores, espaco } from "../lib/tema";
+
+const TIPOS = [
+  { valor: "DESPESA", rotulo: "Gasto" },
+  { valor: "RECEITA", rotulo: "Entrada" },
+];
+
+// Cria um lançamento à mão (sem IA) ou edita um existente (/lancamento?id=123)
+export default function Lancamento() {
+  const { id } = useLocalSearchParams();
+  const editando = Boolean(id);
+
+  const [carregando, setCarregando] = useState(true);
+  const [categorias, setCategorias] = useState([]);
+  const [contas, setContas] = useState([]);
+  const [original, setOriginal] = useState(null);
+  const [tipo, setTipo] = useState("DESPESA");
+  const [valor, setValor] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [data, setData] = useState(dataBR(hojeISO()));
+  const [categoriaId, setCategoriaId] = useState(null);
+  const [contaId, setContaId] = useState(null);
+  const [erro, setErro] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    Promise.all([api.categorias(), api.contas(), editando ? api.transacao(id) : null])
+      .then(([cats, listaContas, transacao]) => {
+        setCategorias(cats);
+        setContas(listaContas);
+        if (transacao) {
+          setOriginal(transacao);
+          setTipo(transacao.tipo);
+          setValor(valorParaCampo(transacao.valor));
+          setDescricao(transacao.descricao);
+          setData(dataBR(transacao.data));
+          setCategoriaId(transacao.categoria?.id ?? null);
+          setContaId(transacao.conta?.id ?? null);
+        }
+      })
+      .catch((e) => setErro(e.message))
+      .finally(() => setCarregando(false));
+  }, [id, editando]);
+
+  function mudarTipo(novo) {
+    setTipo(novo);
+    // A categoria escolhida pode não existir para o outro tipo (Salário não é gasto)
+    if (categorias.find((c) => c.id === categoriaId)?.tipo !== novo) setCategoriaId(null);
+  }
+
+  async function salvar() {
+    setErro(null);
+    const valorNumero = lerValorBR(valor);
+    const dataISO = lerDataBR(data);
+    if (!valorNumero) return setErro("Informe um valor válido, como 35 ou 35,90.");
+    if (!descricao.trim()) return setErro("Informe uma descrição.");
+    if (!dataISO) return setErro("Informe a data no formato DD/MM/AAAA.");
+
+    const dados = { tipo, valor: valorNumero, descricao: descricao.trim(), data: dataISO, contaId };
+    setSalvando(true);
+    try {
+      if (editando) await api.editarTransacao(id, { ...dados, categoriaId });
+      // Sem categoria escolhida, o Bolso usa a memória ou sugere uma
+      else await api.criarTransacao({ ...dados, contaId: contaId ?? undefined, categoriaId: categoriaId ?? undefined });
+      router.back();
+    } catch (e) {
+      setErro(e.message);
+      setSalvando(false);
+    }
+  }
+
+  function apagar() {
+    Alert.alert("Apagar lançamento?", `${original.descricao} · ${reais(original.valor)}`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Apagar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await api.apagarTransacao(id);
+            router.back();
+          } catch (e) {
+            setErro(e.message);
+          }
+        },
+      },
+    ]);
+  }
+
+  const opcoesCategoria = [
+    ...(editando ? [] : [{ valor: null, rotulo: "Automática" }]),
+    ...categorias.filter((c) => c.tipo === tipo).map((c) => ({ valor: c.id, rotulo: c.nome })),
+  ];
+  const opcoesConta = [{ valor: null, rotulo: "Nenhuma" }, ...contas.map((c) => ({ valor: c.id, rotulo: c.nome }))];
+
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Stack.Screen options={{ title: editando ? "Editar lançamento" : "Novo lançamento" }} />
+      {carregando ? (
+        <ActivityIndicator color={cores.marca} style={{ marginTop: 40 }} />
+      ) : (
+        <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
+          {original?.conciliadaComId && (
+            <View style={estilos.nota}>
+              <Ionicons name="link-outline" size={16} color={cores.textoSecundario} />
+              <Text style={estilos.notaTexto}>Este gasto também veio na fatura e já é contado por lá.</Text>
+            </View>
+          )}
+
+          <Opcoes opcoes={TIPOS} valor={tipo} aoMudar={mudarTipo} />
+
+          <Rotulo>Valor</Rotulo>
+          <Campo value={valor} onChangeText={setValor} placeholder="0,00" keyboardType="decimal-pad" accessibilityLabel="Valor" />
+
+          <Rotulo>Descrição</Rotulo>
+          <Campo value={descricao} onChangeText={setDescricao} placeholder="Ex: Padaria" accessibilityLabel="Descrição" />
+
+          <Rotulo>Data</Rotulo>
+          <Campo value={data} onChangeText={setData} placeholder="DD/MM/AAAA" keyboardType="numbers-and-punctuation" accessibilityLabel="Data" />
+
+          <Rotulo>Categoria</Rotulo>
+          <Opcoes opcoes={opcoesCategoria} valor={categoriaId} aoMudar={setCategoriaId} />
+          {editando && (
+            <Text style={estilos.dica}>O Bolso vai lembrar da categoria para os próximos gastos desse lugar.</Text>
+          )}
+
+          <Rotulo>Conta ou cartão</Rotulo>
+          <Opcoes opcoes={opcoesConta} valor={contaId} aoMudar={setContaId} />
+
+          {original?.itens?.length > 0 && (
+            <>
+              <Rotulo>Itens do cupom</Rotulo>
+              <Cartao style={{ gap: espaco.p }}>
+                {original.itens.map((item) => (
+                  <View key={item.id} style={estilos.item}>
+                    <Text style={estilos.itemNome} numberOfLines={1}>
+                      {item.produto?.nomeCanonico ?? item.descricao}
+                    </Text>
+                    <Text style={estilos.itemValor}>{reais(item.precoTotal)}</Text>
+                  </View>
+                ))}
+              </Cartao>
+            </>
+          )}
+        </ScrollView>
+      )}
+      <SafeAreaView edges={["bottom"]} style={estilos.rodape}>
+        <Aviso mensagem={erro} />
+        <Botao titulo="Salvar" icone="checkmark" aoTocar={salvar} carregando={salvando} desativado={carregando} />
+        {editando && original && <Botao titulo="Apagar lançamento" icone="trash-outline" variante="secundario" aoTocar={apagar} />}
+      </SafeAreaView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const estilos = StyleSheet.create({
+  conteudo: { padding: espaco.m, gap: espaco.p, paddingBottom: espaco.g },
+  nota: { flexDirection: "row", gap: 6, alignItems: "center", marginBottom: espaco.p },
+  notaTexto: { flex: 1, fontSize: 13, color: cores.textoSecundario },
+  dica: { fontSize: 13, color: cores.textoSuave },
+  item: { flexDirection: "row", justifyContent: "space-between", gap: espaco.p },
+  itemNome: { flex: 1, fontSize: 14, color: cores.texto },
+  itemValor: { fontSize: 14, color: cores.texto, fontVariant: ["tabular-nums"] },
+  rodape: { padding: espaco.m, gap: espaco.p, borderTopWidth: 1, borderTopColor: cores.borda, backgroundColor: cores.fundo },
+});

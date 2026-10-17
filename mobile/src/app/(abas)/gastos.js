@@ -1,8 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, FlatList, Modal, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { Aviso, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { diaMes, mesAtual, reais } from "../../lib/formato";
@@ -23,6 +22,7 @@ function ItemGasto({ transacao, aoTocar, aoSegurar }) {
   const detalhes = [
     diaMes(transacao.data),
     ROTULO_ORIGEM[transacao.origem],
+    transacao.conta?.nome,
     transacao.parcelaTotal && `${transacao.parcelaAtual}/${transacao.parcelaTotal}`,
     transacao.itens.length > 0 && `${transacao.itens.length} itens`,
   ].filter(Boolean);
@@ -53,41 +53,27 @@ function ItemGasto({ transacao, aoTocar, aoSegurar }) {
 export default function Gastos() {
   const [mes, setMes] = useState(mesAtual());
   const [transacoes, setTransacoes] = useState(null);
-  const [categorias, setCategorias] = useState([]);
-  const [editando, setEditando] = useState(null);
   const [erro, setErro] = useState(null);
   const [atualizando, setAtualizando] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
       setErro(null);
-      const [lista, cats] = await Promise.all([api.transacoes(mes), api.categorias()]);
-      setTransacoes(lista);
-      setCategorias(cats);
+      setTransacoes(await api.transacoes(mes));
     } catch (e) {
       setErro(e.message);
     }
   }, [mes]);
 
+  // Recarrega ao voltar da tela de edição
   useFocusEffect(
     useCallback(() => {
       carregar();
     }, [carregar]),
   );
 
-  async function trocarCategoria(categoria) {
-    const transacao = editando;
-    setEditando(null);
-    try {
-      const atualizada = await api.editarTransacao(transacao.id, { categoriaId: categoria.id });
-      setTransacoes((lista) => lista.map((t) => (t.id === atualizada.id ? atualizada : t)));
-    } catch (e) {
-      setErro(e.message);
-    }
-  }
-
   function confirmarExclusao(transacao) {
-    Alert.alert("Apagar gasto?", `${transacao.descricao} · ${reais(transacao.valor)}`, [
+    Alert.alert("Apagar lançamento?", `${transacao.descricao} · ${reais(transacao.valor)}`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Apagar",
@@ -104,67 +90,56 @@ export default function Gastos() {
     ]);
   }
 
-  const doTipo = categorias.filter((c) => c.tipo === (editando?.tipo ?? "DESPESA"));
-
   return (
-    <View style={{ flex: 1 }}>
-      <FlatList
-        data={transacoes ?? []}
-        keyExtractor={(t) => String(t.id)}
-        contentContainerStyle={estilos.lista}
-        ListHeaderComponent={
-          <View style={{ gap: espaco.p, marginBottom: espaco.p }}>
-            <SeletorMes mes={mes} aoMudar={setMes} />
-            <Aviso mensagem={erro} />
-            {transacoes?.length > 0 && (
-              <Text style={estilos.dica}>Toque para mudar a categoria. Segure para apagar.</Text>
-            )}
+    <FlatList
+      data={transacoes ?? []}
+      keyExtractor={(t) => String(t.id)}
+      contentContainerStyle={estilos.lista}
+      ListHeaderComponent={
+        <View style={{ gap: espaco.p, marginBottom: espaco.p }}>
+          <SeletorMes mes={mes} aoMudar={setMes} />
+          <Aviso mensagem={erro} />
+          <View style={estilos.cabecalho}>
+            <Text style={estilos.dica}>
+              {transacoes?.length ? "Toque para editar. Segure para apagar." : ""}
+            </Text>
+            <Pressable onPress={() => router.push("/lancamento")} hitSlop={10} style={estilos.novo} accessibilityRole="button">
+              <Ionicons name="add" size={18} color={cores.marca} />
+              <Text style={estilos.novoTexto}>Novo</Text>
+            </Pressable>
           </View>
-        }
-        ListEmptyComponent={
-          transacoes && <Vazio icone="wallet-outline" texto="Nenhum lançamento neste mês." />
-        }
-        renderItem={({ item }) => (
-          <ItemGasto transacao={item} aoTocar={() => setEditando(item)} aoSegurar={() => confirmarExclusao(item)} />
-        )}
-        ItemSeparatorComponent={() => <View style={{ height: espaco.p }} />}
-        refreshControl={
-          <RefreshControl
-            refreshing={atualizando}
-            tintColor={cores.marca}
-            onRefresh={async () => {
-              setAtualizando(true);
-              await carregar();
-              setAtualizando(false);
-            }}
-          />
-        }
-      />
-
-      <Modal visible={Boolean(editando)} animationType="slide" transparent onRequestClose={() => setEditando(null)}>
-        <Pressable style={estilos.fundoModal} onPress={() => setEditando(null)} />
-        <SafeAreaView edges={["bottom"]} style={estilos.folha}>
-          <Text style={estilos.folhaTitulo}>Categoria de “{editando?.descricao}”</Text>
-          <Text style={estilos.folhaDica}>O Bolso vai lembrar dessa escolha para os próximos gastos desse lugar.</Text>
-          <FlatList
-            data={doTipo}
-            keyExtractor={(c) => String(c.id)}
-            renderItem={({ item }) => (
-              <Pressable style={estilos.opcao} onPress={() => trocarCategoria(item)}>
-                <Text style={estilos.opcaoTexto}>{item.nome}</Text>
-                {item.id === editando?.categoria?.id && <Ionicons name="checkmark" size={20} color={cores.marca} />}
-              </Pressable>
-            )}
-          />
-        </SafeAreaView>
-      </Modal>
-    </View>
+        </View>
+      }
+      ListEmptyComponent={transacoes && <Vazio icone="wallet-outline" texto="Nenhum lançamento neste mês." />}
+      renderItem={({ item }) => (
+        <ItemGasto
+          transacao={item}
+          aoTocar={() => router.push(`/lancamento?id=${item.id}`)}
+          aoSegurar={() => confirmarExclusao(item)}
+        />
+      )}
+      ItemSeparatorComponent={() => <View style={{ height: espaco.p }} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={atualizando}
+          tintColor={cores.marca}
+          onRefresh={async () => {
+            setAtualizando(true);
+            await carregar();
+            setAtualizando(false);
+          }}
+        />
+      }
+    />
   );
 }
 
 const estilos = StyleSheet.create({
   lista: { padding: espaco.m, paddingBottom: 40 },
-  dica: { fontSize: 13, color: cores.textoSuave },
+  cabecalho: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  dica: { fontSize: 13, color: cores.textoSuave, flex: 1 },
+  novo: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 4 },
+  novoTexto: { fontSize: 15, fontWeight: "600", color: cores.marca },
   item: {
     flexDirection: "row",
     alignItems: "center",
@@ -191,24 +166,4 @@ const estilos = StyleSheet.create({
   conciliadaTexto: { fontSize: 12, color: cores.textoSecundario },
   valor: { fontSize: 16, fontWeight: "700", color: cores.texto, fontVariant: ["tabular-nums"] },
   valorRiscado: { color: cores.textoSuave, textDecorationLine: "line-through" },
-  fundoModal: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" },
-  folha: {
-    maxHeight: "70%",
-    backgroundColor: cores.superficie,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: espaco.m,
-    gap: espaco.p,
-  },
-  folhaTitulo: { fontSize: 17, fontWeight: "700", color: cores.texto },
-  folhaDica: { fontSize: 13, color: cores.textoSecundario, marginBottom: espaco.p },
-  opcao: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    minHeight: 48,
-    borderBottomWidth: 1,
-    borderBottomColor: cores.borda,
-  },
-  opcaoTexto: { fontSize: 16, color: cores.texto },
 });
