@@ -21,20 +21,24 @@ function tipoPadrao(mimeType) {
   return "EXTRATO";
 }
 
-function mimeDoArquivo(arquivo) {
-  // Alguns celulares mandam arquivos como application/octet-stream; nesse caso vale a extensão
-  if (arquivo.mimetype === "application/octet-stream") {
-    const extensao = arquivo.originalname.split(".").pop().toLowerCase();
+// Alguns celulares mandam arquivos como application/octet-stream (ou sem tipo); nesse caso vale a extensão
+function normalizarMime(mimeType, nome = "") {
+  if (!mimeType || mimeType === "application/octet-stream") {
+    const extensao = nome.split(".").pop().toLowerCase();
     const porExtensao = { ofx: "application/x-ofx", csv: "text/csv", pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png" };
     if (porExtensao[extensao]) return porExtensao[extensao];
   }
-  return arquivo.mimetype;
+  return mimeType ?? "application/octet-stream";
 }
 
 const envio = z.object({
   tipo: z.enum(["CUPOM", "FATURA", "EXTRATO", "COMPROVANTE", "CONTA_CONSUMO"]).optional(),
   contaId: z.coerce.number().int().positive().optional(),
   texto: z.string().trim().min(1).max(500).optional(),
+  // Formato usado pelo app: o arquivo vai em base64 dentro do JSON
+  arquivo: z
+    .object({ base64: z.string().min(1), nome: z.string().optional(), mimeType: z.string().optional() })
+    .optional(),
 });
 
 const camposDocumento = {
@@ -42,7 +46,8 @@ const camposDocumento = {
   erro: true, contaId: true, criadoEm: true, processadoEm: true,
 };
 
-// Envia um arquivo (multipart, campo "arquivo") ou um texto ({ "texto": "gastei 35 no uber" })
+// Envia um arquivo (multipart no campo "arquivo", ou JSON { arquivo: { base64, nome, mimeType } })
+// ou um texto ({ "texto": "gastei 35 no uber" })
 rotasDocumentos.post(
   "/",
   upload.single("arquivo"),
@@ -51,16 +56,21 @@ rotasDocumentos.post(
     await garantirDono("conta", dados.contaId, req.usuarioId);
 
     let documento;
-    if (req.file) {
-      const mimeType = mimeDoArquivo(req.file);
+    const arquivo = req.file
+      ? { conteudo: req.file.buffer, mimeType: normalizarMime(req.file.mimetype, req.file.originalname) }
+      : dados.arquivo && {
+          conteudo: Buffer.from(dados.arquivo.base64, "base64"),
+          mimeType: normalizarMime(dados.arquivo.mimeType, dados.arquivo.nome),
+        };
+
+    if (arquivo) {
+      const { conteudo, mimeType } = arquivo;
+      if (!conteudo.length) throw new ErroHttp(400, "O arquivo chegou vazio");
+      if (conteudo.length > config.uploadMaxBytes) throw new ErroHttp(413, "Arquivo maior que 10 MB");
       if (!IMAGENS.has(mimeType) && !TEXTOS.has(mimeType) && mimeType !== "application/pdf") {
         throw new ErroHttp(415, "Formato não suportado. Envie foto (JPG/PNG), PDF, CSV ou OFX.");
       }
-      documento = {
-        tipo: dados.tipo ?? tipoPadrao(mimeType),
-        mimeType,
-        conteudo: req.file.buffer,
-      };
+      documento = { tipo: dados.tipo ?? tipoPadrao(mimeType), mimeType, conteudo };
     } else if (dados.texto) {
       documento = { tipo: "TEXTO", texto: dados.texto };
     } else {

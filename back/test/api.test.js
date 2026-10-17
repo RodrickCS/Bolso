@@ -77,6 +77,28 @@ test("fluxo completo: texto, cupom, fatura, conciliação e painel", opcoes, asy
   assert.equal((await chamar(token, "GET", "/transacoes")).corpo.length, transacoes.length);
 });
 
+test("aceita arquivo em base64 no JSON, como o app envia", opcoes, async () => {
+  const token = await cadastrar("base64@teste.com");
+  const enviar = (arquivo, tipo) => chamar(token, "POST", "/documentos", { arquivo, tipo });
+
+  const pdf = await enviar({ base64: Buffer.from("%PDF-1.4").toString("base64"), nome: "Fatura Março.pdf", mimeType: "application/pdf" }, "FATURA");
+  assert.equal(pdf.status, 202);
+  assert.equal(pdf.corpo.mimeType, "application/pdf");
+
+  // Sem tipo MIME, vale a extensão
+  const foto = await enviar({ base64: Buffer.from("\xff\xd8\xff").toString("base64"), nome: "foto.jpg" });
+  assert.equal(foto.corpo.tipo, "CUPOM");
+  assert.equal(foto.corpo.mimeType, "image/jpeg");
+
+  await processarPendentes();
+  const documentos = (await chamar(token, "GET", "/documentos")).corpo;
+  assert.deepEqual(documentos.map((d) => d.status), ["PRONTO", "PRONTO"]);
+
+  assert.equal((await enviar({ base64: Buffer.from("oi").toString("base64"), nome: "a.zip", mimeType: "application/zip" })).status, 415);
+  const grande = Buffer.alloc(11 * 1024 * 1024).toString("base64");
+  assert.equal((await enviar({ base64: grande, nome: "grande.pdf", mimeType: "application/pdf" })).status, 413);
+});
+
 test("correção de categoria vira memória e frase simples dispensa a IA", opcoes, async () => {
   const token = await cadastrar("memoria@teste.com");
   const categorias = (await chamar(token, "GET", "/categorias")).corpo;

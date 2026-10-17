@@ -8,6 +8,7 @@ export function tratarErros(erro, _req, res, _next) {
     return res.status(400).json({ erro: mensagem });
   }
   if (erro.type === "entity.parse.failed") return res.status(400).json({ erro: "JSON inválido" });
+  if (erro.type === "entity.too.large") return res.status(413).json({ erro: "Arquivo grande demais (máximo 10 MB)" });
   console.error(erro);
   res.status(500).json({ erro: "Erro interno" });
 }

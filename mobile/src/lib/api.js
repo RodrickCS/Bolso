@@ -1,5 +1,4 @@
-// Usa o fetch nativo do React Native: no FormData ele aceita arquivos no formato
-// { uri, name, type }, o jeito mais testado de enviar arquivos no Android e no iOS.
+import { File } from "expo-file-system";
 
 // Endereço do back-end. Em desenvolvimento no celular, use o IP do computador na rede
 // (ex: http://192.168.0.10:3000), não "localhost". Configure em mobile/.env.
@@ -13,10 +12,12 @@ export function configurarSessao(novoToken, callbackExpirou) {
   if (callbackExpirou) aoExpirar = callbackExpirou;
 }
 
-async function requisicao(caminho, { metodo = "GET", corpo, formulario } = {}) {
+const LIMITE_ARQUIVO = 10 * 1024 * 1024;
+
+async function requisicao(caminho, { metodo = "GET", corpo, limiteMs = 15_000 } = {}) {
   // Sem limite de tempo, um servidor inalcançável deixa o app carregando para sempre
   const controle = new AbortController();
-  const limite = setTimeout(() => controle.abort(), formulario ? 60_000 : 15_000);
+  const limite = setTimeout(() => controle.abort(), limiteMs);
   let resposta;
   try {
     resposta = await fetch(API_URL + caminho, {
@@ -25,7 +26,7 @@ async function requisicao(caminho, { metodo = "GET", corpo, formulario } = {}) {
         ...(token && { authorization: `Bearer ${token}` }),
         ...(corpo && { "content-type": "application/json" }),
       },
-      body: formulario ?? (corpo && JSON.stringify(corpo)),
+      body: corpo && JSON.stringify(corpo),
       signal: controle.signal,
     });
   } catch (erro) {
@@ -44,21 +45,6 @@ async function requisicao(caminho, { metodo = "GET", corpo, formulario } = {}) {
   return dados;
 }
 
-const EXTENSOES = {
-  "application/pdf": "pdf",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "text/csv": "csv",
-  "application/x-ofx": "ofx",
-};
-
-// Nomes com acentos ou espaços ("Fatura Março.pdf") podem quebrar o envio; o servidor só usa a extensão
-function nomeSeguro({ nome, mimeType }) {
-  const extensao = nome?.includes(".") ? nome.split(".").pop().toLowerCase() : EXTENSOES[mimeType] ?? "bin";
-  return `arquivo.${extensao.replace(/[^a-z0-9]/g, "")}`;
-}
-
 export const api = {
   entrar: (email, senha) => requisicao("/auth/entrar", { metodo: "POST", corpo: { email, senha } }),
   registrar: (nome, email, senha) =>
@@ -75,12 +61,17 @@ export const api = {
   documentos: () => requisicao("/documentos"),
   documento: (id) => requisicao(`/documentos/${id}`),
   enviarTexto: (texto) => requisicao("/documentos", { metodo: "POST", corpo: { texto } }),
-  // arquivo: { uri, nome, mimeType } vindo da câmera, da galeria ou do seletor de documentos
-  enviarArquivo: (arquivo, tipo) => {
-    const formulario = new FormData();
-    formulario.append("arquivo", { uri: arquivo.uri, name: nomeSeguro(arquivo), type: arquivo.mimeType });
-    if (tipo) formulario.append("tipo", tipo);
-    return requisicao("/documentos", { metodo: "POST", formulario });
+  // arquivo: { uri, nome, mimeType } vindo da câmera, da galeria ou do seletor de documentos.
+  // Vai em base64 dentro de um JSON: é o caminho mais previsível no Expo (o mesmo das outras requisições).
+  enviarArquivo: async (arquivo, tipo) => {
+    const local = new File(arquivo.uri);
+    if (local.size > LIMITE_ARQUIVO) throw new Error("Arquivo maior que 10 MB. Envie um arquivo menor.");
+    const base64 = await local.base64();
+    return requisicao("/documentos", {
+      metodo: "POST",
+      corpo: { arquivo: { base64, nome: arquivo.nome, mimeType: arquivo.mimeType }, tipo },
+      limiteMs: 90_000,
+    });
   },
 };
 

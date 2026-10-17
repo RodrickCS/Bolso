@@ -23,6 +23,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(cors());
+// Arquivos chegam em base64 no JSON (10 MB viram ~13,4 MB); nas outras rotas o limite é pequeno
+app.use("/documentos", express.json({ limit: "15mb" }));
 app.use(express.json({ limit: "100kb" }));
 
 app.get("/saude", (_req, res) => res.json({ ok: true }));
