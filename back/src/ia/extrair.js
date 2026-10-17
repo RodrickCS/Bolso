@@ -44,7 +44,7 @@ function blocoConteudo(documento) {
 }
 
 // Lê um documento e devolve { transacoes, observacao } já validado pelo schema
-export async function extrairTransacoes(documento, nomesCategorias) {
+export async function extrairTransacoes(documento, nomesCategorias, produtosConhecidos = []) {
   if (config.ia.mock) return respostaMock(documento.tipo);
 
   const modelo = documento.tipo === "TEXTO" ? config.ia.modeloRapido : config.ia.modeloDocumentos;
@@ -66,6 +66,14 @@ export async function extrairTransacoes(documento, nomesCategorias) {
             type: "text",
             text: `Tipo informado pelo usuário: ${ROTULOS[documento.tipo]}. Data de hoje: ${hojeISO()}.`,
           },
+          ...(produtosConhecidos.length
+            ? [
+                {
+                  type: "text",
+                  text: `Produtos que este usuário já comprou. Se um item for um deles, use exatamente o mesmo nome_canonico:\n${produtosConhecidos.join("\n")}`,
+                },
+              ]
+            : []),
         ],
       },
     ],

@@ -3,6 +3,7 @@ import { escreverDicas } from "../ia/assistente.js";
 import { intervaloDoMes } from "../lib/meses.js";
 import { prisma } from "../lib/prisma.js";
 import { calcularFatos, detectarAssinaturas } from "./analise.js";
+import { fatosDePrecos, resumirProdutos } from "./precos.js";
 
 const UM_DIA = 24 * 60 * 60 * 1000;
 
@@ -57,19 +58,44 @@ export async function assinaturasDetectadas(usuarioId, mes) {
   return detectarAssinaturas(await despesas(usuarioId, seisMesesAntes, fim), referencia(mes));
 }
 
+// Itens de cupom ligados a um produto, no formato que as análises de preço esperam
+export async function comprasDeProdutos(usuarioId, produtoId) {
+  const itens = await prisma.item.findMany({
+    where: { produto: { usuarioId, ...(produtoId && { id: produtoId }) } },
+    select: {
+      quantidade: true,
+      precoTotal: true,
+      produto: { select: { id: true, nomeCanonico: true } },
+      transacao: { select: { data: true, estabelecimento: true, descricao: true } },
+    },
+  });
+  return itens.map((i) => ({
+    produtoId: i.produto.id,
+    produto: i.produto.nomeCanonico,
+    data: i.transacao.data,
+    estabelecimento: i.transacao.estabelecimento ?? i.transacao.descricao,
+    quantidade: Number(i.quantidade),
+    precoTotal: Number(i.precoTotal),
+  }));
+}
+
 export async function fatosDoMes(usuarioId, mes) {
   const { inicio, fim } = intervaloDoMes(mes);
   const inicioAnterior = new Date(Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth() - 1, 1));
   const inicioHistorico = new Date(inicio.getTime() - 90 * UM_DIA);
 
-  const [atuais, anteriores, historico, orcamentos, assinaturas] = await Promise.all([
+  const [atuais, anteriores, historico, orcamentos, assinaturas, compras] = await Promise.all([
     despesas(usuarioId, inicio, fim),
     despesas(usuarioId, inicioAnterior, inicio),
     despesas(usuarioId, inicioHistorico, inicio),
     statusOrcamentos(usuarioId, mes),
     assinaturasDetectadas(usuarioId, mes),
+    comprasDeProdutos(usuarioId),
   ]);
-  return calcularFatos({ mes, hoje: referencia(mes), atuais, anteriores, historico, orcamentos, assinaturas });
+  return [
+    ...calcularFatos({ mes, hoje: referencia(mes), atuais, anteriores, historico, orcamentos, assinaturas }),
+    ...fatosDePrecos(resumirProdutos(compras), mes),
+  ].sort((a, b) => b.prioridade - a.prioridade);
 }
 
 // Dicas do assistente. A IA é chamada no máximo uma vez por dia por mês consultado,

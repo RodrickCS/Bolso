@@ -254,3 +254,59 @@ test("contas, edição completa, histórico de envios, exportação e exclusão 
   assert.equal((await chamar(token, "DELETE", "/minha-conta", { senha: "12345678" })).status, 204);
   assert.equal((await chamar(null, "POST", "/auth/entrar", { email: "basico@teste.com", senha: "12345678" })).status, 401);
 });
+
+test("preços dos produtos: histórico, mercado mais barato, renomear, juntar e dica do assistente", opcoes, async () => {
+  const token = await cadastrar("precos@teste.com");
+  const usuario = await prisma.usuario.findUnique({ where: { email: "precos@teste.com" } });
+
+  // Cupom de hoje (mock: café a 21,90 no Supermercado Bom Preço) e um cupom antigo em outro mercado
+  await chamar(token, "POST", "/documentos", arquivo("\xff\xd8\xff", "image/jpeg", "cupom.jpg"));
+  await processarPendentes();
+  const cafe = await prisma.produto.findFirst({ where: { usuarioId: usuario.id, nomeCanonico: "Café Pilão 500g" } });
+  const duplicado = await prisma.produto.create({ data: { usuarioId: usuario.id, nomeCanonico: "Café Pilão Tradicional 500g" } });
+  const antes = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+  await prisma.transacao.create({
+    data: {
+      usuarioId: usuario.id, tipo: "DESPESA", origem: "CUPOM", valor: 37.4, data: antes,
+      descricao: "Compra no mercado", estabelecimento: "Atacadão Centro",
+      itens: {
+        create: [
+          { descricao: "CAFE PILAO 500", quantidade: 1, precoTotal: 18.9, produtoId: cafe.id },
+          { descricao: "CAFE PILAO TRAD", quantidade: 1, precoTotal: 18.5, produtoId: duplicado.id },
+        ],
+      },
+    },
+  });
+
+  const { inflacao, produtos } = (await chamar(token, "GET", "/produtos")).corpo;
+  assert.equal(produtos.length, 6);
+  assert.equal(inflacao, null, "só um produto com mais de uma compra");
+  const resumo = produtos.find((p) => p.id === cafe.id);
+  assert.deepEqual(
+    [resumo.compras, resumo.primeiroPreco, resumo.ultimoPreco, resumo.variacao, resumo.maisBarato],
+    [2, 18.9, 21.9, 15.9, { estabelecimento: "Atacadão Centro", preco: 18.9, economia: 3 }],
+  );
+
+  // Detalhe com o histórico e o preço em cada mercado
+  const detalhe = (await chamar(token, "GET", `/produtos/${cafe.id}`)).corpo;
+  assert.deepEqual(detalhe.historico.map((h) => h.preco), [18.9, 21.9]);
+  assert.deepEqual(detalhe.porMercado.map((m) => m.estabelecimento), ["Atacadão Centro", "Supermercado Bom Preço"]);
+
+  // O assistente comenta o preço que subiu
+  const { dicas } = (await chamar(token, "GET", "/assistente")).corpo;
+  assert.ok(dicas.some((d) => d.startsWith("Café Pilão 500g saiu R$ 21,90")), dicas.join("\n"));
+
+  // Renomear para um nome que já existe pede para juntar; juntar move as compras
+  assert.equal((await chamar(token, "PATCH", `/produtos/${duplicado.id}`, { nome: "Café Pilão 500g" })).status, 409);
+  assert.equal((await chamar(token, "PATCH", `/produtos/${duplicado.id}`, { nome: "Café Pilão Trad." })).corpo.nome, "Café Pilão Trad.");
+  assert.equal((await chamar(token, "POST", `/produtos/${duplicado.id}/juntar`, { produtoId: duplicado.id })).status, 400);
+  const juntado = (await chamar(token, "POST", `/produtos/${duplicado.id}/juntar`, { produtoId: cafe.id })).corpo;
+  assert.equal(juntado.compras, 3);
+  assert.equal((await chamar(token, "GET", `/produtos/${duplicado.id}`)).status, 404);
+
+  // Outro usuário não vê nem mexe
+  const outro = await cadastrar("outro-precos@teste.com");
+  assert.equal((await chamar(outro, "GET", `/produtos/${cafe.id}`)).status, 404);
+  assert.equal((await chamar(outro, "POST", `/produtos/${cafe.id}/juntar`, { produtoId: cafe.id + 1 })).status, 404);
+  assert.deepEqual((await chamar(outro, "GET", "/produtos")).corpo, { inflacao: null, produtos: [] });
+});

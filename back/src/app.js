@@ -9,6 +9,7 @@ import { rotasCadastros } from "./rotas/cadastros.js";
 import { rotasDados } from "./rotas/dados.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasPainel } from "./rotas/painel.js";
+import { rotasProdutos } from "./rotas/produtos.js";
 import { rotasTransacoes } from "./rotas/transacoes.js";
 
 export const app = express();
@@ -39,6 +40,7 @@ app.use("/", rotasAssistente);
 app.use("/", rotasDados);
 app.use("/documentos", rotasDocumentos);
 app.use("/transacoes", rotasTransacoes);
+app.use("/produtos", rotasProdutos);
 
 app.use((_req, res) => res.status(404).json({ erro: "Rota não encontrada" }));
 app.use(tratarErros);

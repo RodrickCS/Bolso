@@ -44,7 +44,12 @@ export async function processarDocumento(documento) {
     let extracao = await extracaoSemIa(documento);
     if (!extracao) {
       const categorias = await prisma.categoria.findMany({ where: { usuarioId: documento.usuarioId } });
-      extracao = await extrairTransacoes(documento, categorias.map((c) => c.nome));
+      // Em cupons, a IA reaproveita os nomes de produtos já vistos, para o histórico de preços juntar as compras
+      const produtos =
+        documento.tipo === "CUPOM"
+          ? await prisma.produto.findMany({ where: { usuarioId: documento.usuarioId }, orderBy: { id: "desc" }, take: 150 })
+          : [];
+      extracao = await extrairTransacoes(documento, categorias.map((c) => c.nome), produtos.map((p) => p.nomeCanonico));
     }
     await salvarExtracao(documento, extracao);
     await prisma.documento.update({
