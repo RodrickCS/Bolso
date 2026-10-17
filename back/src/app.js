@@ -16,6 +16,12 @@ app.set("json replacer", function (chave, valor) {
   return this[chave] instanceof Prisma.Decimal ? this[chave].toNumber() : valor;
 });
 
+// Uma linha por requisição no terminal: ajuda a ver se o celular está chegando na API
+app.use((req, res, next) => {
+  const inicio = Date.now();
+  res.on("finish", () => console.log(`${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - inicio}ms`));
+  next();
+});
 app.use(cors());
 app.use(express.json({ limit: "100kb" }));
 

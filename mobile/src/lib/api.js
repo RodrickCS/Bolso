@@ -14,6 +14,9 @@ export function configurarSessao(novoToken, callbackExpirou) {
 }
 
 async function requisicao(caminho, { metodo = "GET", corpo, formulario } = {}) {
+  // Sem limite de tempo, um servidor inalcançável deixa o app carregando para sempre
+  const controle = new AbortController();
+  const limite = setTimeout(() => controle.abort(), formulario ? 60_000 : 15_000);
   let resposta;
   try {
     resposta = await fetch(API_URL + caminho, {
@@ -23,9 +26,12 @@ async function requisicao(caminho, { metodo = "GET", corpo, formulario } = {}) {
         ...(corpo && { "content-type": "application/json" }),
       },
       body: formulario ?? (corpo && JSON.stringify(corpo)),
+      signal: controle.signal,
     });
   } catch {
-    throw new Error("Sem conexão com o servidor. Confira a internet e o endereço da API.");
+    throw new Error(`Não consegui falar com o servidor em ${API_URL}. Confira o endereço e se o celular está no mesmo Wi-Fi do computador.`);
+  } finally {
+    clearTimeout(limite);
   }
 
   if (resposta.status === 204) return null;
