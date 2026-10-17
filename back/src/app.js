@@ -6,6 +6,7 @@ import { tratarErros } from "./middlewares/erros.js";
 import { rotasAssistente } from "./rotas/assistente.js";
 import { rotasAuth } from "./rotas/auth.js";
 import { rotasCadastros } from "./rotas/cadastros.js";
+import { rotasDados } from "./rotas/dados.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasPainel } from "./rotas/painel.js";
 import { rotasTransacoes } from "./rotas/transacoes.js";
@@ -35,6 +36,7 @@ app.use(autenticar);
 app.use("/", rotasCadastros);
 app.use("/", rotasPainel);
 app.use("/", rotasAssistente);
+app.use("/", rotasDados);
 app.use("/documentos", rotasDocumentos);
 app.use("/transacoes", rotasTransacoes);
 

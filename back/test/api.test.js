@@ -197,3 +197,60 @@ test("orçamentos, assinaturas e assistente (sem IA no modo mock, com cache)", o
   assert.equal((await chamar(token, "DELETE", `/orcamentos/${id("Lazer")}`)).status, 204);
   assert.equal((await chamar(token, "DELETE", `/orcamentos/${id("Lazer")}`)).status, 404);
 });
+
+test("contas, edição completa, histórico de envios, exportação e exclusão da conta", opcoes, async () => {
+  const token = await cadastrar("basico@teste.com");
+  const categorias = (await chamar(token, "GET", "/categorias")).corpo;
+  const id = (nome) => categorias.find((c) => c.nome === nome).id;
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  // Contas: cria, renomeia, valida dono
+  const nubank = (await chamar(token, "POST", "/contas", { nome: "Nubank", tipo: "CREDITO" })).corpo;
+  assert.equal((await chamar(token, "PATCH", `/contas/${nubank.id}`, { nome: "Nubank Roxinho" })).corpo.nome, "Nubank Roxinho");
+  const outro = await cadastrar("outro-basico@teste.com");
+  assert.equal((await chamar(outro, "DELETE", `/contas/${nubank.id}`)).status, 404);
+
+  // Lançamento numa conta aparece no painel por conta
+  const gasto = (await chamar(token, "POST", "/transacoes", {
+    valor: 80, data: hoje, descricao: "Farmácia", categoriaId: id("Saúde"), contaId: nubank.id,
+  })).corpo;
+  let painel = (await chamar(token, "GET", "/painel")).corpo;
+  assert.deepEqual(painel.porConta, [{ contaId: nubank.id, conta: "Nubank Roxinho", tipo: "CREDITO", total: 80 }]);
+
+  // Edição completa: valor, descrição, data, tipo e conta
+  const editado = (await chamar(token, "PATCH", `/transacoes/${gasto.id}`, {
+    valor: 95.5, descricao: "Drogaria", tipo: "DESPESA", contaId: null,
+  })).corpo;
+  assert.deepEqual([editado.valor, editado.descricao, editado.conta], [95.5, "Drogaria", null]);
+  assert.equal((await chamar(token, "GET", `/transacoes/${gasto.id}`)).corpo.descricao, "Drogaria");
+  assert.equal((await chamar(outro, "GET", `/transacoes/${gasto.id}`)).status, 404);
+
+  // Excluir a conta mantém os lançamentos (só ficam sem conta)
+  await chamar(token, "PATCH", `/transacoes/${gasto.id}`, { contaId: nubank.id });
+  assert.equal((await chamar(token, "DELETE", `/contas/${nubank.id}`)).status, 204);
+  assert.equal((await chamar(token, "GET", `/transacoes/${gasto.id}`)).corpo.conta, null);
+
+  // Histórico de envios com contagem; apagar envio junto com os lançamentos
+  await chamar(token, "POST", "/documentos", arquivo("%PDF-1.4", "application/pdf", "fatura.pdf"));
+  await processarPendentes();
+  const [fatura] = (await chamar(token, "GET", "/documentos")).corpo;
+  assert.equal(fatura._count.transacoes, 4);
+  assert.equal((await chamar(token, "DELETE", `/documentos/${fatura.id}?transacoes=true`)).status, 204);
+  const restantes = (await chamar(token, "GET", "/transacoes")).corpo;
+  assert.deepEqual(restantes.map((t) => t.descricao), ["Drogaria"]);
+
+  // Uso da IA responde (no mock fica zerado)
+  assert.deepEqual((await chamar(token, "GET", "/uso-ia")).corpo.porTarefa, []);
+
+  // Exportação em CSV no formato do Excel brasileiro
+  const resposta = await fetch(`${base}/exportar`, { headers: { authorization: `Bearer ${token}` } });
+  assert.match(resposta.headers.get("content-type"), /text\/csv/);
+  const linhas = (await resposta.text()).replace(/^﻿/, "").trim().split("\r\n");
+  assert.equal(linhas[0], "Data;Descrição;Estabelecimento;Categoria;Conta;Tipo;Valor;Parcela;Origem;Já contado em outra linha");
+  assert.equal(linhas[1], `${hoje.split("-").reverse().join("/")};Drogaria;;Saúde;;Gasto;95,50;;MANUAL;`);
+
+  // Excluir a conta pede a senha certa e apaga tudo
+  assert.equal((await chamar(token, "DELETE", "/minha-conta", { senha: "errada" })).status, 403);
+  assert.equal((await chamar(token, "DELETE", "/minha-conta", { senha: "12345678" })).status, 204);
+  assert.equal((await chamar(null, "POST", "/auth/entrar", { email: "basico@teste.com", senha: "12345678" })).status, 401);
+});

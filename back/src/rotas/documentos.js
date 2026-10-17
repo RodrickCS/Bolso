@@ -86,17 +86,37 @@ rotasDocumentos.post(
   }),
 );
 
+// Histórico de envios, com quantos lançamentos cada um gerou
 rotasDocumentos.get(
   "/",
   assincrono(async (req, res) => {
     res.json(
       await prisma.documento.findMany({
         where: { usuarioId: req.usuarioId },
-        select: camposDocumento,
+        select: { ...camposDocumento, _count: { select: { transacoes: true } } },
         orderBy: { criadoEm: "desc" },
         take: 30,
       }),
     );
+  }),
+);
+
+// Apaga um envio. Com ?transacoes=true apaga também os lançamentos que ele gerou
+// (útil quando a IA leu um documento errado). Cópias conciliadas com eles voltam a contar.
+rotasDocumentos.delete(
+  "/:id",
+  assincrono(async (req, res) => {
+    const documento = await prisma.documento.findFirst({
+      where: { id: Number(req.params.id) || 0, usuarioId: req.usuarioId },
+    });
+    if (!documento) throw new ErroHttp(404, "Documento não encontrado");
+    if (documento.status === "PROCESSANDO") throw new ErroHttp(409, "Esse documento está sendo lido agora. Tente daqui a pouco.");
+
+    await prisma.$transaction(async (tx) => {
+      if (req.query.transacoes === "true") await tx.transacao.deleteMany({ where: { documentoId: documento.id } });
+      await tx.documento.delete({ where: { id: documento.id } });
+    });
+    res.status(204).end();
   }),
 );
 

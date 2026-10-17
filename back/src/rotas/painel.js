@@ -16,9 +16,11 @@ rotasPainel.get(
     const { inicio, fim } = intervaloDoMes(mes);
     const where = { usuarioId: req.usuarioId, data: { gte: inicio, lt: fim }, conciliadaComId: null };
 
-    const [grupos, categorias] = await Promise.all([
+    const [grupos, categorias, gruposConta, contas] = await Promise.all([
       prisma.transacao.groupBy({ by: ["tipo", "categoriaId"], where, _sum: { valor: true }, _count: true }),
       prisma.categoria.findMany({ where: { usuarioId: req.usuarioId } }),
+      prisma.transacao.groupBy({ by: ["contaId"], where: { ...where, tipo: "DESPESA", contaId: { not: null } }, _sum: { valor: true } }),
+      prisma.conta.findMany({ where: { usuarioId: req.usuarioId } }),
     ]);
     const nomePorId = new Map(categorias.map((c) => [c.id, c.nome]));
 
@@ -38,12 +40,25 @@ rotasPainel.get(
       }))
       .sort((a, b) => b.total - a.total);
 
+    // Gastos do mês por conta/cartão (num cartão de crédito, é o que vai pesar na fatura)
+    const contaPorId = new Map(contas.map((c) => [c.id, c]));
+    const porConta = gruposConta
+      .filter((g) => contaPorId.has(g.contaId))
+      .map((g) => ({
+        contaId: g.contaId,
+        conta: contaPorId.get(g.contaId).nome,
+        tipo: contaPorId.get(g.contaId).tipo,
+        total: Number(g._sum.valor),
+      }))
+      .sort((a, b) => b.total - a.total);
+
     res.json({
       mes,
       despesas: Math.round(despesas * 100) / 100,
       receitas: Math.round(receitas * 100) / 100,
       saldo: Math.round((receitas - despesas) * 100) / 100,
       porCategoria,
+      porConta,
     });
   }),
 );

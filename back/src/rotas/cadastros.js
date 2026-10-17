@@ -31,6 +31,27 @@ rotasCadastros.post(
   }),
 );
 
+rotasCadastros.patch(
+  "/contas/:id",
+  assincrono(async (req, res) => {
+    const id = Number(req.params.id) || 0;
+    await garantirDono("conta", id, req.usuarioId);
+    const dados = validar(novaConta.partial(), req.body);
+    res.json(await prisma.conta.update({ where: { id }, data: dados }));
+  }),
+);
+
+// Os lançamentos da conta continuam existindo, só ficam sem conta
+rotasCadastros.delete(
+  "/contas/:id",
+  assincrono(async (req, res) => {
+    const id = Number(req.params.id) || 0;
+    await garantirDono("conta", id, req.usuarioId);
+    await prisma.conta.delete({ where: { id } });
+    res.status(204).end();
+  }),
+);
+
 rotasCadastros.get(
   "/categorias",
   assincrono(async (req, res) => {

@@ -18,6 +18,7 @@ const dataISO = z
 const filtro = z.object({
   mes: parametroMes,
   categoriaId: z.coerce.number().int().positive().optional(),
+  contaId: z.coerce.number().int().positive().optional(),
 });
 
 const nova = z.object({
@@ -31,6 +32,7 @@ const nova = z.object({
 });
 
 const edicao = z.object({
+  tipo: z.enum(["DESPESA", "RECEITA"]).optional(),
   valor: z.number().positive().optional(),
   data: dataISO.optional(),
   descricao: z.string().trim().min(1).optional(),
@@ -68,15 +70,23 @@ async function escolherCategoria(usuarioId, descricao) {
 rotasTransacoes.get(
   "/",
   assincrono(async (req, res) => {
-    const { mes, categoriaId } = validar(filtro, req.query);
+    const { mes, categoriaId, contaId } = validar(filtro, req.query);
     const { inicio, fim } = intervaloDoMes(mes);
     res.json(
       await prisma.transacao.findMany({
-        where: { usuarioId: req.usuarioId, data: { gte: inicio, lt: fim }, categoriaId },
+        where: { usuarioId: req.usuarioId, data: { gte: inicio, lt: fim }, categoriaId, contaId },
         include: detalhes,
         orderBy: [{ data: "desc" }, { id: "desc" }],
       }),
     );
+  }),
+);
+
+rotasTransacoes.get(
+  "/:id",
+  assincrono(async (req, res) => {
+    const transacao = await buscarDoUsuario(req.params.id, req.usuarioId);
+    res.json(await prisma.transacao.findUnique({ where: { id: transacao.id }, include: detalhes }));
   }),
 );
 
