@@ -98,7 +98,9 @@ export default function Adicionar() {
     const opcoes = { mediaTypes: ["images"], quality: 1 };
     const escolha = daCamera ? await ImagePicker.launchCameraAsync(opcoes) : await ImagePicker.launchImageLibraryAsync(opcoes);
     if (escolha.canceled) return;
-    acompanhar(async () => api.enviarArquivo(await reduzirFoto(escolha.assets[0]), tipo));
+    acompanhar(async () =>
+      api.enviarArquivo({ uri: await reduzirFoto(escolha.assets[0]), nome: "foto.jpg", mimeType: "image/jpeg" }, tipo),
+    );
   }
 
   async function usarArquivo() {
@@ -107,7 +109,8 @@ export default function Adicionar() {
       copyToCacheDirectory: true,
     });
     if (escolha.canceled) return;
-    acompanhar(() => api.enviarArquivo(escolha.assets[0].uri, tipo));
+    const { uri, name, mimeType } = escolha.assets[0];
+    acompanhar(() => api.enviarArquivo({ uri, nome: name, mimeType: mimeType ?? "application/octet-stream" }, tipo));
   }
 
   return (
