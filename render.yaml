@@ -1,0 +1,22 @@
+# Blueprint do Render: em render.com > New > Blueprint, aponte para este repositório.
+# Os valores marcados com sync: false são pedidos no painel durante a criação.
+services:
+  - type: web
+    name: bolso-api
+    runtime: node
+    plan: free
+    rootDir: back
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /saude
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: IA_MOCK
+        value: "false"

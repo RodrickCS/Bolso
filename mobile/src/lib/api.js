@@ -1,0 +1,70 @@
+import { fetch } from "expo/fetch";
+import { File } from "expo-file-system";
+
+// Endereço do back-end. Em desenvolvimento no celular, use o IP do computador na rede
+// (ex: http://192.168.0.10:3333), não "localhost". Configure em mobile/.env.
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3333";
+
+let token = null;
+let aoExpirar = () => {};
+
+export function configurarSessao(novoToken, callbackExpirou) {
+  token = novoToken;
+  if (callbackExpirou) aoExpirar = callbackExpirou;
+}
+
+async function requisicao(caminho, { metodo = "GET", corpo, formulario } = {}) {
+  let resposta;
+  try {
+    resposta = await fetch(API_URL + caminho, {
+      method: metodo,
+      headers: {
+        ...(token && { authorization: `Bearer ${token}` }),
+        ...(corpo && { "content-type": "application/json" }),
+      },
+      body: formulario ?? (corpo && JSON.stringify(corpo)),
+    });
+  } catch {
+    throw new Error("Sem conexão com o servidor. Confira a internet e o endereço da API.");
+  }
+
+  if (resposta.status === 204) return null;
+  const dados = await resposta.json().catch(() => ({}));
+  if (resposta.status === 401 && token) aoExpirar();
+  if (!resposta.ok) throw new Error(dados.erro ?? `Erro ${resposta.status}`);
+  return dados;
+}
+
+export const api = {
+  entrar: (email, senha) => requisicao("/auth/entrar", { metodo: "POST", corpo: { email, senha } }),
+  registrar: (nome, email, senha) =>
+    requisicao("/auth/registrar", { metodo: "POST", corpo: { nome, email, senha } }),
+
+  painel: (mes) => requisicao(`/painel?mes=${mes}`),
+  usoIa: (mes) => requisicao(`/uso-ia?mes=${mes}`),
+  categorias: () => requisicao("/categorias"),
+
+  transacoes: (mes) => requisicao(`/transacoes?mes=${mes}`),
+  editarTransacao: (id, dados) => requisicao(`/transacoes/${id}`, { metodo: "PATCH", corpo: dados }),
+  apagarTransacao: (id) => requisicao(`/transacoes/${id}`, { metodo: "DELETE" }),
+
+  documentos: () => requisicao("/documentos"),
+  documento: (id) => requisicao(`/documentos/${id}`),
+  enviarTexto: (texto) => requisicao("/documentos", { metodo: "POST", corpo: { texto } }),
+  enviarArquivo: (uri, tipo) => {
+    const formulario = new FormData();
+    formulario.append("arquivo", new File(uri));
+    if (tipo) formulario.append("tipo", tipo);
+    return requisicao("/documentos", { metodo: "POST", formulario });
+  },
+};
+
+// Consulta o documento até a IA terminar de ler (ou desistir depois de ~2 minutos)
+export async function aguardarDocumento(id, { intervaloMs = 2000, tentativas = 60 } = {}) {
+  for (let i = 0; i < tentativas; i++) {
+    const documento = await api.documento(id);
+    if (documento.status === "PRONTO" || documento.status === "ERRO") return documento;
+    await new Promise((resolver) => setTimeout(resolver, intervaloMs));
+  }
+  throw new Error("A leitura está demorando. Confira daqui a pouco na lista de envios.");
+}

@@ -22,10 +22,11 @@ function tipoPadrao(mimeType) {
 }
 
 function mimeDoArquivo(arquivo) {
-  // Muitos celulares mandam .ofx/.csv como application/octet-stream
+  // Alguns celulares mandam arquivos como application/octet-stream; nesse caso vale a extensão
   if (arquivo.mimetype === "application/octet-stream") {
-    if (/\.ofx$/i.test(arquivo.originalname)) return "application/x-ofx";
-    if (/\.csv$/i.test(arquivo.originalname)) return "text/csv";
+    const extensao = arquivo.originalname.split(".").pop().toLowerCase();
+    const porExtensao = { ofx: "application/x-ofx", csv: "text/csv", pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png" };
+    if (porExtensao[extensao]) return porExtensao[extensao];
   }
   return arquivo.mimetype;
 }
