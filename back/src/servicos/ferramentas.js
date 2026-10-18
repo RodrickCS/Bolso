@@ -22,6 +22,7 @@ export const linhaLancamento = (t) => `${t.descricao} · ${diaMes(t.data)} · ${
 class ErroDeUso extends Error {}
 
 function acharPorNome(lista, nome, oQue) {
+  if (!nome?.trim()) throw new ErroDeUso(`Informe o nome da ${oQue.toLowerCase()}. Opções: ${lista.map((item) => item.nome).join(", ")}`);
   const alvo = comparavel(nome);
   const exato = lista.find((item) => comparavel(item.nome) === alvo);
   if (exato) return exato;
@@ -42,7 +43,19 @@ function valorValido(valor, campo = "valor") {
   return Math.round(valor * 100) / 100;
 }
 
-const nulo = (esquema, descricao) => esquema.nullable().describe(descricao);
+// Os parâmetros não usam null: a API aceita no máximo 16 parâmetros "valor ou null" somando todas as ferramentas
+// estritas. A IA manda "" (texto), 0 (número) ou "manter"/"automatico", e aqui isso vira null para o resto do código.
+const SIM_NAO = { sim: true, nao: false, manter: null, automatico: null };
+function normalizar(entrada) {
+  return Object.fromEntries(
+    Object.entries(entrada).map(([chave, valor]) => {
+      if (typeof valor === "string" && chave === "repetir_todo_mes") return [chave, SIM_NAO[valor] ?? null];
+      if (typeof valor === "string" && !valor.trim()) return [chave, null];
+      if (typeof valor === "number" && valor === 0) return [chave, null];
+      return [chave, valor];
+    }),
+  );
+}
 
 // ctx: { usuarioId, acoes: [] (cartões para o app), citados: Map (lançamentos que apareceram, para a próxima mensagem) }
 export function criarFerramentas(ctx) {
@@ -66,12 +79,12 @@ export function criarFerramentas(ctx) {
         "Busca gastos e entradas do usuário. Use para responder perguntas (quanto, onde, quando, maiores) e para achar os ids " +
         "antes de editar ou apagar. Sem período, usa o mês atual (ou os últimos 6 meses se agrupar por mês).",
       esquema: z.strictObject({
-        inicio: nulo(z.string(), "Data inicial AAAA-MM-DD, ou null"),
-        fim: nulo(z.string(), "Data final AAAA-MM-DD (inclusive), ou null para hoje"),
+        inicio: z.string().describe('Data inicial AAAA-MM-DD, ou "" para o padrão'),
+        fim: z.string().describe('Data final AAAA-MM-DD (inclusive), ou "" para hoje'),
         tipo: z.enum(["DESPESA", "RECEITA", "AMBOS"]).describe("DESPESA para gastos (padrão), RECEITA para entradas"),
         categorias: z.array(z.string()).describe("Nomes de categorias para filtrar; lista vazia para todas"),
-        busca: nulo(z.string(), "Texto para procurar na descrição ou loja (ex.: uber, ifood), ou null"),
-        conta: nulo(z.string(), "Nome da conta ou cartão para filtrar, ou null"),
+        busca: z.string().describe('Texto para procurar na descrição ou loja (ex.: uber, ifood), ou ""'),
+        conta: z.string().describe('Nome da conta ou cartão para filtrar, ou ""'),
         agrupar: z.enum(["nenhum", "categoria", "mes", "estabelecimento"]).describe("Como somar os resultados"),
         ordenar: z.enum(["recentes", "maiores"]).describe("Ordem da lista de lançamentos"),
       }),
@@ -177,15 +190,16 @@ export function criarFerramentas(ctx) {
         tipo: z.enum(["DESPESA", "RECEITA"]).describe("DESPESA para gasto, RECEITA para entrada"),
         valor: z.number().describe("Valor em reais, positivo"),
         descricao: z.string().describe("Onde ou com o quê, curto: Uber, Padaria, Salário"),
-        data: nulo(z.string(), "AAAA-MM-DD; null para hoje"),
-        categoria: nulo(z.string(), "Nome exato de uma categoria do usuário; null para o Bolso escolher sozinho"),
-        conta: nulo(z.string(), "Nome da conta ou cartão usado; null se não foi dito"),
-        repetir_todo_mes: nulo(z.boolean(), "true se o usuário disse que repete todo mês; null para o Bolso decidir"),
+        data: z.string().describe('AAAA-MM-DD, ou "" para hoje'),
+        categoria: z.string().describe('Nome exato de uma categoria do usuário, ou "" para o Bolso escolher sozinho'),
+        conta: z.string().describe('Nome da conta ou cartão usado, ou "" se não foi dito'),
+        repetir_todo_mes: z.enum(["automatico", "sim", "nao"]).describe('"sim" se o usuário disse que repete todo mês, "nao" se disse que não, "automatico" para o Bolso decidir'),
       }),
       async executar(f) {
         const valor = valorValido(f.valor);
+        if (valor === null) throw new ErroDeUso("valor é obrigatório");
         const data = dataValida(f.data, "data") ?? hojeISO();
-        const descricao = f.descricao.trim().slice(0, 120);
+        const descricao = (f.descricao ?? "").trim().slice(0, 120);
         if (!descricao) throw new ErroDeUso("descricao vazia");
         const categoria = f.categoria ? acharPorNome(await categorias(), f.categoria, "Categoria") : null;
         const conta = f.conta ? acharPorNome(await contas(), f.conta, "Conta") : null;
@@ -219,12 +233,12 @@ export function criarFerramentas(ctx) {
         "proposta que o usuário confirma num botão. Mudar a categoria também ensina o Bolso para os próximos dessa loja.",
       esquema: z.strictObject({
         ids: z.array(z.number()).describe("Ids dos lançamentos, vindos de consultar_lancamentos"),
-        valor: nulo(z.number(), "Novo valor, ou null"),
-        descricao: nulo(z.string(), "Nova descrição, ou null"),
-        data: nulo(z.string(), "Nova data AAAA-MM-DD, ou null"),
-        categoria: nulo(z.string(), "Nova categoria (nome exato), ou null"),
-        conta: nulo(z.string(), "Nova conta ou cartão (nome), ou null"),
-        repetir_todo_mes: nulo(z.boolean(), "true para virar gasto fixo, false para parar de repetir, null para não mexer"),
+        valor: z.number().describe("Novo valor, ou 0 para não mudar"),
+        descricao: z.string().describe('Nova descrição, ou "" para não mudar'),
+        data: z.string().describe('Nova data AAAA-MM-DD, ou "" para não mudar'),
+        categoria: z.string().describe('Nova categoria (nome exato), ou "" para não mudar'),
+        conta: z.string().describe('Nova conta ou cartão (nome), ou "" para não mudar'),
+        repetir_todo_mes: z.enum(["manter", "sim", "nao"]).describe('"sim" para virar gasto fixo, "nao" para parar de repetir, "manter" para não mexer'),
       }),
       async executar(f) {
         const lista = await lancamentosDoUsuario(usuarioId, f.ids);
@@ -287,7 +301,7 @@ export function criarFerramentas(ctx) {
         tipo: z.enum(["CREDITO", "CORRENTE", "POUPANCA", "DINHEIRO"]),
       }),
       async executar(f) {
-        const nome = f.nome.trim().slice(0, 60);
+        const nome = (f.nome ?? "").trim().slice(0, 60);
         if (!nome) throw new ErroDeUso("nome vazio");
         if ((await contas()).some((c) => comparavel(c.nome) === comparavel(nome))) throw new ErroDeUso(`Já existe a conta ${nome}`);
         const { acao } = await executarAgora(usuarioId, "criar_conta", {
@@ -308,7 +322,7 @@ export function criarFerramentas(ctx) {
       esquema: z.strictObject({
         conta: z.string().describe("Nome atual da conta"),
         acao: z.enum(["renomear", "apagar"]),
-        novo_nome: nulo(z.string(), "Novo nome quando acao é renomear; senão null"),
+        novo_nome: z.string().describe('Novo nome quando acao é renomear; senão ""'),
       }),
       async executar(f) {
         const conta = acharPorNome(await contas(), f.conta, "Conta");
@@ -344,7 +358,7 @@ export function criarFerramentas(ctx) {
         tipo: z.enum(["DESPESA", "RECEITA"]),
       }),
       async executar(f) {
-        const nome = f.nome.trim().slice(0, 40);
+        const nome = (f.nome ?? "").trim().slice(0, 40);
         if (!nome) throw new ErroDeUso("nome vazio");
         if ((await categorias()).some((c) => comparavel(c.nome) === comparavel(nome))) throw new ErroDeUso(`Já existe a categoria ${nome}`);
         const { acao } = await executarAgora(usuarioId, "criar_categoria", {
@@ -364,7 +378,7 @@ export function criarFerramentas(ctx) {
         "existe vira proposta para o usuário confirmar.",
       esquema: z.strictObject({
         categoria: z.string().describe("Nome da categoria"),
-        valor_mensal: nulo(z.number(), "Limite por mês em reais; null para remover o orçamento"),
+        valor_mensal: z.number().describe("Limite por mês em reais, ou 0 para remover o orçamento"),
       }),
       async executar(f) {
         const categoria = acharPorNome(await categorias(), f.categoria, "Categoria");
@@ -398,8 +412,8 @@ export function criarFerramentas(ctx) {
       esquema: z.strictObject({
         id: z.number().describe("Id do gasto fixo"),
         acao: z.enum(["pausar", "retomar", "editar", "apagar"]),
-        valor: nulo(z.number(), "Novo valor mensal quando acao é editar; senão null"),
-        dia: nulo(z.number(), "Novo dia do vencimento (1 a 31) quando acao é editar; senão null"),
+        valor: z.number().describe("Novo valor mensal quando acao é editar; senão 0"),
+        dia: z.number().describe("Novo dia do vencimento (1 a 31) quando acao é editar; senão 0"),
       }),
       async executar(f) {
         const fixo = await prisma.recorrencia.findFirst({ where: { id: Number(f.id) || 0, usuarioId } });
@@ -455,7 +469,7 @@ export function criarFerramentas(ctx) {
 // Roda uma ferramenta: erros de uso voltam como texto para a IA corrigir; o resto sobe
 export async function rodarFerramenta(ferramenta, entrada) {
   try {
-    return { texto: await ferramenta.executar(ferramenta.esquema.parse(entrada)), erro: false };
+    return { texto: await ferramenta.executar(normalizar(ferramenta.esquema.parse(entrada))), erro: false };
   } catch (erro) {
     if (erro instanceof ErroDeUso || erro instanceof z.ZodError || erro.status === 400 || erro.status === 404 || erro.status === 409) {
       return { texto: `Erro: ${erro.message}`, erro: true };

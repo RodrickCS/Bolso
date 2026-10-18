@@ -48,7 +48,7 @@ async function conversarLocal(ctx, mensagem) {
   const apagar = mensagem.match(/^(?:apag|exclu|remov)\w*\s+(?:(?:o|a|os|as|do|da)\s+)?(?:gastos?\s+)?(?:d[oa]s?\s+|com\s+)?(.+?)\.?$/i);
   if (apagar) {
     const { texto } = await rodarFerramenta(ferramenta("consultar_lancamentos"), {
-      inicio: null, fim: null, tipo: "AMBOS", categorias: [], busca: apagar[1], conta: null, agrupar: "nenhum", ordenar: "recentes",
+      inicio: "", fim: "", tipo: "AMBOS", categorias: [], busca: apagar[1], conta: "", agrupar: "nenhum", ordenar: "recentes",
     });
     const achados = JSON.parse(texto).lancamentos ?? [];
     if (!achados.length) return { resposta: `Não achei lançamentos com "${apagar[1]}" este mês.` };
@@ -60,7 +60,7 @@ async function conversarLocal(ctx, mensagem) {
   if (gasto) {
     const { texto, erro } = await rodarFerramenta(ferramenta("criar_lancamento"), {
       tipo: gasto.tipo, valor: gasto.valor, descricao: gasto.descricao, data: gasto.data,
-      categoria: null, conta: null, repetir_todo_mes: null,
+      categoria: "", conta: "", repetir_todo_mes: "automatico",
     });
     return { resposta: erro ? texto : `Anotado: ${gasto.descricao}, R$ ${gasto.valor.toFixed(2).replace(".", ",")}.` };
   }

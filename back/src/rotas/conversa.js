@@ -32,7 +32,8 @@ rotasConversa.post(
       res.json(await conversar(req.usuarioId, dados));
     } catch (erro) {
       if (erro instanceof ErroHttp) throw erro;
-      console.error("Conversa:", erro.message);
+      // Status e mensagem completos no log do servidor (no Render: aba Logs), para achar a causa sem expor ao usuário
+      console.error("Conversa:", erro.status ?? "", erro.message);
       throw new ErroHttp(503, "Não consegui responder agora. Tente de novo em instantes.");
     }
   }),

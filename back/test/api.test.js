@@ -567,14 +567,14 @@ test("ferramentas do assistente: editar em lote, orçamento e conta, com erros q
 
   // Consulta acha os dois e devolve os ids
   const achados = JSON.parse((await rodar("consultar_lancamentos", {
-    inicio: "2026-10-01", fim: "2026-10-31", tipo: "DESPESA", categorias: [], busca: "shell", conta: null, agrupar: "nenhum", ordenar: "recentes",
+    inicio: "2026-10-01", fim: "2026-10-31", tipo: "DESPESA", categorias: [], busca: "shell", conta: "", agrupar: "nenhum", ordenar: "recentes",
   })).texto);
   assert.equal(achados.total, 380);
   assert.deepEqual(achados.lancamentos.map((t) => t.id), [shell2.id, shell1.id]);
 
   // Erros voltam como texto para a IA corrigir: categoria que não existe, lançamento de outro usuário
   const semCategoria = await rodar("editar_lancamentos", {
-    ids: [shell1.id], valor: null, descricao: null, data: null, categoria: "Gasolina", conta: null, repetir_todo_mes: null,
+    ids: [shell1.id], valor: 0, descricao: "", data: "", categoria: "Gasolina", conta: "", repetir_todo_mes: "manter",
   });
   assert.equal(semCategoria.erro, true);
   assert.match(semCategoria.texto, /Opções: .*Transporte/);
@@ -584,7 +584,7 @@ test("ferramentas do assistente: editar em lote, orçamento e conta, com erros q
 
   // Editar em lote: proposta, confirmação, e desfazer volta tudo como era
   await rodar("editar_lancamentos", {
-    ids: [shell1.id, shell2.id], valor: null, descricao: null, data: null, categoria: "transporte", conta: null, repetir_todo_mes: null,
+    ids: [shell1.id, shell2.id], valor: 0, descricao: "", data: "", categoria: "transporte", conta: "", repetir_todo_mes: "manter",
   });
   const edicao = ctx.acoes.at(-1);
   assert.equal(edicao.situacao, "PENDENTE");
@@ -642,7 +642,7 @@ test("assistente com IA: ferramentas estritas, esforço baixo, cache e o laço d
         model: "claude-sonnet-5-5",
         content: primeira
           ? [{ type: "tool_use", id: "toolu_1", name: "criar_lancamento", input: {
-              tipo: "DESPESA", valor: 45, descricao: "Farmácia", data: null, categoria: "Saúde", conta: null, repetir_todo_mes: null,
+              tipo: "DESPESA", valor: 45, descricao: "Farmácia", data: "", categoria: "Saúde", conta: "", repetir_todo_mes: "automatico",
             } }]
           : [{ type: "text", text: "Anotado: Farmácia, R$ 45,00 em Saúde." }],
         stop_reason: primeira ? "tool_use" : "end_turn",
@@ -673,6 +673,20 @@ test("assistente com IA: ferramentas estritas, esforço baixo, cache e o laço d
     assert.deepEqual(primeiro.corpo.cache_control, { type: "ephemeral" });
     assert.deepEqual(primeiro.corpo.system[0].cache_control, { type: "ephemeral" });
     assert.match(primeiro.corpo.system[1].text, /Categorias de gasto: .*Saúde/);
+    // Limites da API para ferramentas estritas: até 20 ferramentas, 24 parâmetros opcionais e 16 parâmetros
+    // "valor ou null" somando todas; e nada de minimum, maxLength e afins
+    let opcionais = 0;
+    let anulaveis = 0;
+    for (const ferramenta of primeiro.corpo.tools) {
+      for (const [nome, prop] of Object.entries(ferramenta.input_schema.properties)) {
+        if (!ferramenta.input_schema.required.includes(nome)) opcionais++;
+        if (prop.anyOf || Array.isArray(prop.type)) anulaveis++;
+      }
+    }
+    assert.ok(primeiro.corpo.tools.length <= 20);
+    assert.equal(opcionais, 0);
+    assert.equal(anulaveis, 0);
+    assert.doesNotMatch(JSON.stringify(primeiro.corpo.tools), /"(minimum|maximum|minLength|maxLength|minItems|maxItems|multipleOf|pattern)"/);
     for (const ferramenta of primeiro.corpo.tools) {
       assert.equal(ferramenta.strict, true, ferramenta.name);
       assert.equal(ferramenta.input_schema.additionalProperties, false, ferramenta.name);
