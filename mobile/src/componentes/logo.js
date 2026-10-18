@@ -1,6 +1,7 @@
 import Svg, { Circle, G, Path, Text as TextoSvg } from "react-native-svg";
 import { View } from "react-native";
 import { MARCA } from "../lib/marca";
+import { cores, peso } from "../lib/tema";
 
 // O desenho ocupa 82% da imagem, como na splash nativa e nos ícones
 const ESCALA = 0.82;
@@ -16,7 +17,7 @@ export function Moeda({ tamanho }) {
           x={x}
           y={MARCA.cifrao.y}
           fontSize={MARCA.cifrao.tamanho}
-          fontWeight="700"
+          fontWeight={peso.forte}
           fill={MARCA.moedaBorda}
           textAnchor="middle"
           fontFamily="sans-serif"
@@ -29,7 +30,7 @@ export function Moeda({ tamanho }) {
 }
 
 // corCostura: verde no fundo verde (padrão), ou outra cor quando o bolso fica sobre um fundo claro
-export function Bolso({ tamanho, cor = "#fff", corCostura = MARCA.verde }) {
+export function Bolso({ tamanho, cor = cores.sobreMarca, corCostura = MARCA.verde }) {
   const costura = { stroke: corCostura, strokeWidth: 2.2, fill: "none", strokeDasharray: "4.5 3.5", strokeLinecap: "round" };
   return (
     <Svg width={tamanho} height={tamanho} viewBox="0 0 100 100">

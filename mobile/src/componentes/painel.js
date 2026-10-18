@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PELO_TIPO } from "../lib/contas";
 import { diaMes, reais } from "../lib/formato";
-import { cores, espaco, raio } from "../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha } from "../lib/tema";
 import { Cartao } from "./ui";
 import { useAvisos } from "./avisos";
 
@@ -39,7 +39,7 @@ export function CartaoAssistente({ assistente, carregando, aoPerguntar }) {
       >
         <Text style={estilos.perguntarTexto} numberOfLines={1}>Pergunte ao Bolso...</Text>
         <View style={estilos.perguntarEnviar}>
-          <Ionicons name="arrow-up" size={16} color="#fff" />
+          <Ionicons name="arrow-up" size={16} color={cores.sobreMarca} />
         </View>
       </Pressable>
     </Cartao>
@@ -110,7 +110,7 @@ export function ListaOrcamentos({ orcamentos, aoEditar }) {
         </Text>
       ) : (
         <>
-          <View style={{ gap: 8 }} accessible accessibilityLabel={`${reais(gasto)} de ${reais(limite)}, ${Math.round(percentual)}% usado`}>
+          <View style={{ gap: espaco.p }} accessible accessibilityLabel={`${reais(gasto)} de ${reais(limite)}, ${Math.round(percentual)}% usado`}>
             <View style={[estilos.linhaTopo, { alignItems: "flex-end" }]}>
               <Text style={estilos.orcamentoValor}>
                 {reais(gasto)} <Text style={estilos.orcamentoLimite}>de {reais(limite)}</Text>
@@ -143,7 +143,7 @@ export function ContasECartoes({ porConta, aoGerenciar }) {
   if (!porConta?.length) return null;
   const [principal, ...outras] = porConta;
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: espaco.pm }}>
       <View style={estilos.linhaTopo}>
         <Text style={estilos.secao}>Contas e cartões</Text>
         <Pressable onPress={aoGerenciar} hitSlop={10} accessibilityRole="button">
@@ -155,14 +155,14 @@ export function ContasECartoes({ porConta, aoGerenciar }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ marginHorizontal: -espaco.m }}
-        contentContainerStyle={{ gap: 12, paddingHorizontal: espaco.m }}
+        contentContainerStyle={{ gap: espaco.pm, paddingHorizontal: espaco.m }}
       >
         <View style={estilos.contaPrincipal} accessible accessibilityLabel={`${principal.conta}: ${reais(principal.total)} gastos no mês`}>
           <View style={estilos.linhaTopo}>
             <Text style={estilos.contaPrincipalNome} numberOfLines={1}>{principal.conta}</Text>
-            <Ionicons name={PELO_TIPO[principal.tipo]?.icone ?? "wallet-outline"} size={22} color="#fff" />
+            <Ionicons name={PELO_TIPO[principal.tipo]?.icone ?? "wallet-outline"} size={22} color={cores.sobreMarca} />
           </View>
-          <View style={{ gap: 2 }}>
+          <View style={{ gap: espaco.xs }}>
             <Text style={estilos.contaPrincipalRotulo}>Gastos no mês</Text>
             <Text style={estilos.contaPrincipalValor} numberOfLines={1} adjustsFontSizeToFit>{reais(principal.total)}</Text>
           </View>
@@ -208,7 +208,7 @@ export function ListaAlertas({ alertas, aoMarcar, aoAbrir }) {
         return (
           <Cartao key={a.chave} style={estilos.alerta}>
             <Ionicons name={visual.icone} size={20} color={visual.cor} />
-            <View style={{ flex: 1, gap: 10 }}>
+            <View style={{ flex: 1, gap: espaco.p }}>
               <Text style={estilos.alertaTexto}>{a.texto}</Text>
               <View style={estilos.alertaAcoes}>
                 {a.tipo === "duplicada" && <BotaoTexto titulo="Ver a 2ª cobrança" aoTocar={() => aoAbrir(a.transacaoIds[1])} />}
@@ -247,8 +247,8 @@ export function ListaAssinaturas({ dados, aoMarcar, aoDesmarcar }) {
   }
 
   return (
-    <Cartao style={{ gap: 12 }}>
-      <View style={{ gap: 4 }}>
+    <Cartao style={{ gap: espaco.pm }}>
+      <View style={{ gap: espaco.xs }}>
         <Text style={estilos.secao}>Cobranças recorrentes</Text>
         <Text style={estilos.textoSecundario}>
           {reais(dados.totalMensal)} por mês
@@ -279,53 +279,53 @@ export function ListaAssinaturas({ dados, aoMarcar, aoDesmarcar }) {
 }
 
 const estilos = StyleSheet.create({
-  assistente: { gap: 12 },
+  assistente: { gap: espaco.pm },
   assistenteTopo: { flexDirection: "row", alignItems: "center", gap: espaco.p },
-  assistenteIcone: { width: 30, height: 30, borderRadius: 15, backgroundColor: cores.marcaSuave, alignItems: "center", justifyContent: "center" },
-  assistenteTitulo: { fontSize: 16, fontWeight: "700", color: cores.texto },
+  assistenteIcone: { width: 30, height: 30, borderRadius: raios.pilula, backgroundColor: cores.marcaSuave, alignItems: "center", justifyContent: "center" },
+  assistenteTitulo: { fontSize: fonte.md, fontWeight: peso.forte, color: cores.texto },
   assistenteCarregando: { flexDirection: "row", alignItems: "center", gap: espaco.p },
   dica: { flexDirection: "row", gap: espaco.p },
-  marcador: { color: cores.marca, fontSize: 15, lineHeight: 22 },
-  dicaTexto: { flex: 1, fontSize: 15, lineHeight: 22, color: cores.texto },
+  marcador: { color: cores.marca, fontSize: fonte.md, lineHeight: entrelinha.md },
+  dicaTexto: { flex: 1, fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.texto },
   perguntar: {
     flexDirection: "row",
     alignItems: "center",
     gap: espaco.p,
     minHeight: 46,
     paddingLeft: espaco.m,
-    paddingRight: 6,
-    borderRadius: 999,
+    paddingRight: espaco.p,
+    borderRadius: raios.pilula,
     backgroundColor: cores.fundo,
     borderWidth: 1,
     borderColor: cores.borda,
   },
-  perguntarTexto: { flex: 1, fontSize: 15, color: cores.textoSuave },
-  perguntarEnviar: { width: 34, height: 34, borderRadius: 17, backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
-  contaIconeLinha: { width: 34, height: 34, borderRadius: 17, backgroundColor: cores.fundo, alignItems: "center", justifyContent: "center" },
-  secao: { fontSize: 17, fontWeight: "700", color: cores.texto },
-  orcamentoValor: { fontSize: 20, fontWeight: "700", color: cores.texto, flexShrink: 1 },
-  orcamentoLimite: { fontSize: 14, fontWeight: "400", color: cores.textoSecundario },
-  orcamentoPercentual: { fontSize: 15, fontWeight: "600", color: cores.texto },
-  orcamentoMensagem: { fontSize: 14, color: cores.texto },
-  trilhoGrande: { height: 12, borderRadius: 6 },
+  perguntarTexto: { flex: 1, fontSize: fonte.md, color: cores.textoSuave },
+  perguntarEnviar: { width: 34, height: 34, borderRadius: raios.pilula, backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
+  contaIconeLinha: { width: 34, height: 34, borderRadius: raios.pilula, backgroundColor: cores.fundo, alignItems: "center", justifyContent: "center" },
+  secao: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  orcamentoValor: { fontSize: fonte.xl, fontWeight: peso.forte, color: cores.texto, flexShrink: 1 },
+  orcamentoLimite: { fontSize: fonte.sm, fontWeight: peso.regular, color: cores.textoSecundario },
+  orcamentoPercentual: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto },
+  orcamentoMensagem: { fontSize: fonte.sm, color: cores.texto },
+  trilhoGrande: { height: 12, borderRadius: raios.pilula },
   categoriasOrcamento: { gap: espaco.m, borderTopWidth: 1, borderTopColor: cores.borda, paddingTop: espaco.m },
-  link: { fontSize: 15, fontWeight: "600", color: cores.marca },
-  medidor: { gap: 6 },
+  link: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.marca },
+  medidor: { gap: espaco.p },
   linhaTopo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: espaco.p },
-  nome: { fontSize: 15, color: cores.texto, flexShrink: 1 },
-  valor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
-  trilho: { height: 10, borderRadius: 4, overflow: "hidden" },
+  nome: { fontSize: fonte.md, color: cores.texto, flexShrink: 1 },
+  valor: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto, fontVariant: ["tabular-nums"] },
+  trilho: { height: 10, borderRadius: raios.xs, overflow: "hidden" },
   preenchimento: { height: 10, borderTopRightRadius: 4, borderBottomRightRadius: 4 },
-  legenda: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
-  textoSecundario: { fontSize: 13, color: cores.textoSecundario, fontWeight: "400" },
+  legenda: { flexDirection: "row", alignItems: "center", gap: espaco.xs, flexShrink: 1 },
+  textoSecundario: { fontSize: fonte.sm, color: cores.textoSecundario, fontWeight: peso.regular },
   inativa: { color: cores.textoSuave },
-  alerta: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
-  alertaTexto: { fontSize: 15, lineHeight: 21, color: cores.texto },
+  alerta: { flexDirection: "row", gap: espaco.pm, alignItems: "flex-start" },
+  alertaTexto: { fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.texto },
   alertaAcoes: { flexDirection: "row", flexWrap: "wrap", gap: espaco.m },
-  contaPrincipal: { width: 220, minHeight: 132, borderRadius: raio * 1.5, padding: espaco.m, backgroundColor: "#0f5c3d", justifyContent: "space-between", gap: espaco.p },
-  contaPrincipalNome: { fontSize: 15, fontWeight: "700", color: "#fff", flexShrink: 1 },
-  contaPrincipalRotulo: { fontSize: 12, color: "#cfe9dc" },
-  contaPrincipalValor: { fontSize: 22, fontWeight: "700", color: "#fff" },
-  contaPequena: { width: 140, minHeight: 132, borderRadius: raio * 1.5, padding: espaco.m, backgroundColor: cores.superficie, borderWidth: 1, borderColor: cores.borda, gap: 6, justifyContent: "flex-end" },
-  contaIcone: { width: 32, height: 32, borderRadius: 16, backgroundColor: cores.marcaSuave, alignItems: "center", justifyContent: "center", marginBottom: "auto" },
+  contaPrincipal: { width: 220, minHeight: 132, borderRadius: raios.g, padding: espaco.m, backgroundColor: cores.marcaEscura, justifyContent: "space-between", gap: espaco.p },
+  contaPrincipalNome: { fontSize: fonte.md, fontWeight: peso.forte, color: cores.sobreMarca, flexShrink: 1 },
+  contaPrincipalRotulo: { fontSize: fonte.xs, color: cores.sobreMarcaSuave },
+  contaPrincipalValor: { fontSize: fonte.xl, fontWeight: peso.forte, color: cores.sobreMarca },
+  contaPequena: { width: 140, minHeight: 132, borderRadius: raios.g, padding: espaco.m, backgroundColor: cores.superficie, borderWidth: 1, borderColor: cores.borda, gap: espaco.p, justifyContent: "flex-end" },
+  contaIcone: { width: 32, height: 32, borderRadius: raios.g, backgroundColor: cores.marcaSuave, alignItems: "center", justifyContent: "center", marginBottom: "auto" },
 });

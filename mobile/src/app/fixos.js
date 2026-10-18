@@ -5,7 +5,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Te
 import { Aviso, Botao, Campo, Cartao, Rotulo, Vazio } from "../componentes/ui";
 import { api } from "../lib/api";
 import { diaMes, lerValorBR, reais, valorParaCampo } from "../lib/formato";
-import { cores, espaco, raio } from "../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha } from "../lib/tema";
 import { useAvisos } from "../componentes/avisos";
 
 function Editar({ fixo, aoFechar, aoSalvar, aoApagar }) {
@@ -100,14 +100,14 @@ export default function Fixos() {
     ]);
   }
 
-  if (!dados && !erro) return <ActivityIndicator style={{ marginTop: 48 }} color={cores.marca} />;
+  if (!dados && !erro) return <ActivityIndicator style={{ marginTop: espaco.ggg }} color={cores.marca} />;
   const lista = dados?.recorrencias ?? [];
 
   return (
     <ScrollView contentContainerStyle={estilos.conteudo}>
       <Aviso mensagem={erro} />
       {lista.length > 0 && (
-        <Cartao style={{ gap: 4 }}>
+        <Cartao style={{ gap: espaco.xs }}>
           <Text style={estilos.secundario}>Gastos fixos por mês</Text>
           <Text style={estilos.total}>{reais(dados.totalMensal)}</Text>
           <Text style={estilos.secundario}>{reais(dados.totalMensal * 12)} por ano</Text>
@@ -127,7 +127,7 @@ export default function Fixos() {
         <Cartao style={{ gap: espaco.m }}>
           {lista.map((fixo) => (
             <View key={fixo.id} style={estilos.linha}>
-              <Pressable onPress={() => setEditando(fixo)} style={({ pressed }) => [{ flex: 1, gap: 2 }, pressed && { opacity: 0.6 }]}>
+              <Pressable onPress={() => setEditando(fixo)} style={({ pressed }) => [{ flex: 1, gap: espaco.xs }, pressed && { opacity: 0.6 }]}>
                 <Text style={[estilos.nome, !fixo.ativa && estilos.parado]} numberOfLines={1}>{fixo.descricao}</Text>
                 <Text style={estilos.secundario}>
                   {fixo.ativa ? `Todo dia ${fixo.dia} · próximo ${diaMes(fixo.proximaData)}` : "Parado"}
@@ -160,17 +160,17 @@ export default function Fixos() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, gap: 12, paddingBottom: 40 },
-  total: { fontSize: 32, fontWeight: "700", color: cores.texto },
-  secundario: { fontSize: 13, color: cores.textoSecundario },
-  ajuda: { fontSize: 13, lineHeight: 19, color: cores.textoSuave },
-  linha: { flexDirection: "row", alignItems: "center", gap: 12 },
-  nome: { fontSize: 15, color: cores.texto },
-  valor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
+  conteudo: { padding: espaco.m, gap: espaco.pm, paddingBottom: espaco.ggg },
+  total: { fontSize: fonte.xxl, fontWeight: peso.forte, color: cores.texto },
+  secundario: { fontSize: fonte.sm, color: cores.textoSecundario },
+  ajuda: { fontSize: fonte.sm, lineHeight: entrelinha.sm, color: cores.textoSuave },
+  linha: { flexDirection: "row", alignItems: "center", gap: espaco.pm },
+  nome: { fontSize: fonte.md, color: cores.texto },
+  valor: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto, fontVariant: ["tabular-nums"] },
   parado: { color: cores.textoSuave },
-  ia: { flexDirection: "row", alignItems: "center", gap: 3 },
-  iaTexto: { fontSize: 11, color: cores.textoSuave },
-  fundoModal: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", padding: espaco.m },
-  modal: { backgroundColor: cores.superficie, borderRadius: raio, padding: espaco.m, gap: 10 },
-  modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.texto },
+  ia: { flexDirection: "row", alignItems: "center", gap: espaco.xs },
+  iaTexto: { fontSize: fonte.xs, color: cores.textoSuave },
+  fundoModal: { flex: 1, backgroundColor: cores.veu, justifyContent: "center", padding: espaco.m },
+  modal: { backgroundColor: cores.superficie, borderRadius: raios.m, padding: espaco.m, gap: espaco.p },
+  modalTitulo: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
 });

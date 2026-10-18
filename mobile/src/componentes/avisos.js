@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { cores, espaco, raio } from "../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha, sombras, componentes } from "../lib/tema";
 
 // Diálogos e avisos rápidos com o visual do app, no lugar do Alert cinza do sistema.
 // alerta(titulo, mensagem, botoes) aceita os mesmos botões do Alert.alert: { text, style, onPress },
@@ -89,7 +89,7 @@ function Toast({ toast }) {
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
     >
-      <Ionicons name={erro ? "alert-circle" : "checkmark-circle"} size={18} color={erro ? "#fca5a5" : "#6ee7b7"} />
+      <Ionicons name={erro ? "alert-circle" : "checkmark-circle"} size={18} color={erro ? cores.toastErro : cores.toastSucesso} />
       <Text style={estilos.toastTexto}>{toast.mensagem}</Text>
     </Animated.View>
   );
@@ -114,23 +114,23 @@ export function ProvedorAvisos({ children }) {
 }
 
 const estilos = StyleSheet.create({
-  fundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  fundo: { flex: 1, backgroundColor: cores.veu },
   folha: {
     backgroundColor: cores.superficie,
-    borderTopLeftRadius: raio * 2,
-    borderTopRightRadius: raio * 2,
+    borderTopLeftRadius: componentes.folha.raio,
+    borderTopRightRadius: componentes.folha.raio,
     padding: espaco.m,
     paddingTop: espaco.g,
     gap: espaco.p,
   },
-  titulo: { fontSize: 18, fontWeight: "700", color: cores.texto },
-  mensagem: { fontSize: 15, lineHeight: 21, color: cores.textoSecundario },
+  titulo: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  mensagem: { fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.textoSecundario },
   botoes: { gap: espaco.p, marginTop: espaco.p },
-  botao: { minHeight: 48, borderRadius: raio, alignItems: "center", justifyContent: "center", paddingHorizontal: espaco.m },
+  botao: { minHeight: componentes.botao.altura, borderRadius: componentes.botao.raio, alignItems: "center", justifyContent: "center", paddingHorizontal: espaco.m },
   botaoNormal: { backgroundColor: cores.marcaSuave },
   botaoPerigo: { backgroundColor: cores.criticoSuave },
   botaoCancelar: { backgroundColor: "transparent" },
-  botaoTexto: { fontSize: 16, fontWeight: "600" },
+  botaoTexto: { fontSize: fonte.md, fontWeight: peso.medio },
   toast: {
     position: "absolute",
     alignSelf: "center",
@@ -139,14 +139,10 @@ const estilos = StyleSheet.create({
     alignItems: "center",
     gap: espaco.p,
     paddingHorizontal: espaco.m,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: "#1f2937",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    paddingVertical: espaco.pm,
+    borderRadius: raios.pilula,
+    backgroundColor: cores.toastFundo,
+    ...sombras.flutuante,
   },
-  toastTexto: { color: "#fff", fontSize: 14, fontWeight: "600", flexShrink: 1 },
+  toastTexto: { color: cores.sobreEscuro, fontSize: fonte.sm, fontWeight: peso.medio, flexShrink: 1 },
 });

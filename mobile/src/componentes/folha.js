@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { cores, espaco, raio } from "../lib/tema";
+import { cores, espaco, raios, fonte, peso, componentes } from "../lib/tema";
 
 // Folha que sobe de baixo com uma lista de escolhas. opcoes: [{ valor, rotulo, detalhe?, icone }]
 export function Folha({ visivel, titulo, opcoes, selecionado, aoEscolher, aoCancelar }) {
@@ -37,19 +37,19 @@ export function Folha({ visivel, titulo, opcoes, selecionado, aoEscolher, aoCanc
 }
 
 const estilos = StyleSheet.create({
-  fundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  fundo: { flex: 1, backgroundColor: cores.veu },
   folha: {
     backgroundColor: cores.superficie,
-    borderTopLeftRadius: raio * 2,
-    borderTopRightRadius: raio * 2,
+    borderTopLeftRadius: componentes.folha.raio,
+    borderTopRightRadius: componentes.folha.raio,
     padding: espaco.m,
-    gap: 4,
+    gap: espaco.xs,
   },
-  titulo: { fontSize: 17, fontWeight: "700", color: cores.texto, marginBottom: espaco.p },
-  opcao: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 52, paddingVertical: 8, paddingHorizontal: espaco.p, borderRadius: raio },
+  titulo: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto, marginBottom: espaco.p },
+  opcao: { flexDirection: "row", alignItems: "center", gap: espaco.m, minHeight: 52, paddingVertical: espaco.p, paddingHorizontal: espaco.p, borderRadius: raios.m },
   selecionada: { backgroundColor: cores.marcaSuave },
-  rotulo: { fontSize: 15, fontWeight: "600", color: cores.texto },
-  detalhe: { fontSize: 13, color: cores.textoSecundario },
-  cancelar: { alignItems: "center", paddingVertical: 12, marginTop: espaco.p },
-  cancelarTexto: { fontSize: 15, fontWeight: "600", color: cores.textoSecundario },
+  rotulo: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto },
+  detalhe: { fontSize: fonte.sm, color: cores.textoSecundario },
+  cancelar: { alignItems: "center", paddingVertical: espaco.pm, marginTop: espaco.p },
+  cancelarTexto: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.textoSecundario },
 });

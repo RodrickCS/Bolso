@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Tabs } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
-import { cores } from "../../lib/tema";
+import { cores, raios, peso } from "../../lib/tema";
 
 // Ícone cheio na aba ativa, contornado nas outras
 function icone(nome) {
@@ -26,7 +26,7 @@ function BotaoAdicionar({ onPress, onLongPress, accessibilityState }) {
         accessibilityLabel="Adicionar gasto"
         accessibilityState={accessibilityState}
       >
-        <Ionicons name="add" size={32} color="#fff" />
+        <Ionicons name="add" size={32} color={cores.sobreMarca} />
       </Pressable>
     </View>
   );
@@ -41,7 +41,7 @@ export default function LayoutAbas() {
         tabBarStyle: { borderTopColor: cores.borda, backgroundColor: cores.superficie },
         headerStyle: { backgroundColor: cores.fundo },
         headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: "700" },
+        headerTitleStyle: { fontWeight: peso.forte },
         sceneStyle: { backgroundColor: cores.fundo },
       }}
     >
@@ -70,7 +70,7 @@ const estilos = StyleSheet.create({
   adicionar: {
     width: 58,
     height: 58,
-    borderRadius: 29,
+    borderRadius: raios.pilula,
     marginTop: -20,
     backgroundColor: cores.marca,
     alignItems: "center",

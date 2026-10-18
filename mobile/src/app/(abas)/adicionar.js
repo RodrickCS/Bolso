@@ -21,7 +21,7 @@ import { Resultado } from "../../componentes/resultado";
 import { Aviso, Cartao } from "../../componentes/ui";
 import { aguardarDocumento, api } from "../../lib/api";
 import { PELO_TIPO } from "../../lib/contas";
-import { cores, espaco, raio } from "../../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha } from "../../lib/tema";
 import { useAvisos } from "../../componentes/avisos";
 
 const TIPOS = [
@@ -42,9 +42,9 @@ function Atalho({ icone, titulo, dica, aoTocar, destaque, desativado }) {
       accessibilityRole="button"
       accessibilityLabel={`${titulo}: ${dica}`}
     >
-      <Ionicons name={icone} size={26} color={destaque ? "#fff" : cores.marca} />
-      <Text style={[estilos.atalhoTitulo, destaque && { color: "#fff" }]}>{titulo}</Text>
-      <Text style={[estilos.atalhoDica, destaque && { color: "#e8f5ee" }]} numberOfLines={1}>{dica}</Text>
+      <Ionicons name={icone} size={26} color={destaque ? cores.sobreMarca : cores.marca} />
+      <Text style={[estilos.atalhoTitulo, destaque && { color: cores.sobreMarca }]}>{titulo}</Text>
+      <Text style={[estilos.atalhoDica, destaque && { color: cores.sobreMarcaSuave }]} numberOfLines={1}>{dica}</Text>
     </Pressable>
   );
 }
@@ -228,7 +228,7 @@ export default function Adicionar() {
               accessibilityRole="button"
               accessibilityLabel="Adicionar gasto"
             >
-              <Ionicons name="arrow-up" size={18} color="#fff" />
+              <Ionicons name="arrow-up" size={18} color={cores.sobreMarca} />
             </Pressable>
           </View>
         </View>
@@ -291,53 +291,53 @@ export default function Adicionar() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, gap: 12, paddingBottom: 40 },
-  rotulo: { fontSize: 14, fontWeight: "600", color: cores.textoSecundario, marginTop: espaco.p },
+  conteudo: { padding: espaco.m, gap: espaco.pm, paddingBottom: espaco.ggg },
+  rotulo: { fontSize: fonte.sm, fontWeight: peso.medio, color: cores.textoSecundario, marginTop: espaco.p },
   caixa: {
-    borderRadius: raio + 4,
+    borderRadius: raios.m + 4,
     borderWidth: 1,
     borderColor: cores.borda,
     backgroundColor: cores.superficie,
-    padding: 12,
-    gap: 10,
+    padding: espaco.pm,
+    gap: espaco.p,
   },
-  entrada: { minHeight: 52, maxHeight: 120, fontSize: 16, lineHeight: 22, color: cores.texto, textAlignVertical: "top", padding: 0 },
+  entrada: { minHeight: 52, maxHeight: 120, fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.texto, textAlignVertical: "top", padding: 0 },
   barraCaixa: { flexDirection: "row", alignItems: "center", gap: espaco.p },
   pilula: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: espaco.xs,
     height: 32,
-    paddingHorizontal: 10,
-    borderRadius: 16,
+    paddingHorizontal: espaco.p,
+    borderRadius: raios.g,
     backgroundColor: cores.fundo,
     maxWidth: 160,
   },
-  pilulaTexto: { fontSize: 13, fontWeight: "600", color: cores.textoSecundario, flexShrink: 1 },
+  pilulaTexto: { fontSize: fonte.sm, fontWeight: peso.medio, color: cores.textoSecundario, flexShrink: 1 },
   enviar: {
     marginLeft: "auto",
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: raios.pilula,
     backgroundColor: cores.marca,
     alignItems: "center",
     justifyContent: "center",
   },
   enviarDesligado: { backgroundColor: cores.textoSuave, opacity: 0.35 },
-  grade: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  grade: { flexDirection: "row", flexWrap: "wrap", gap: espaco.p },
   atalho: {
     flexBasis: "47%",
     flexGrow: 1,
-    gap: 2,
-    padding: 12,
-    borderRadius: raio,
+    gap: espaco.xs,
+    padding: espaco.pm,
+    borderRadius: raios.m,
     borderWidth: 1,
     borderColor: cores.borda,
     backgroundColor: cores.superficie,
   },
   atalhoDestaque: { backgroundColor: cores.marca, borderColor: cores.marca },
-  atalhoTitulo: { fontSize: 15, fontWeight: "700", color: cores.texto, marginTop: 6 },
-  atalhoDica: { fontSize: 12, color: cores.textoSecundario },
-  lendo: { flexDirection: "row", alignItems: "center", gap: 12 },
+  atalhoTitulo: { fontSize: fonte.md, fontWeight: peso.forte, color: cores.texto, marginTop: espaco.p },
+  atalhoDica: { fontSize: fonte.xs, color: cores.textoSecundario },
+  lendo: { flexDirection: "row", alignItems: "center", gap: espaco.pm },
   lendoTexto: { flex: 1, color: cores.textoSecundario },
 });

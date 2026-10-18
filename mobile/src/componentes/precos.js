@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline, Text as TextoSvg } from "react-native-svg";
 import { diaMes, reais, variacao } from "../lib/formato";
-import { cores, espaco } from "../lib/tema";
+import { cores, espaco, fonte, peso, componentes } from "../lib/tema";
 import { Cartao } from "./ui";
 
 // Seta + percentual. Preço subindo é ruim para o bolso: seta vermelha; descendo, verde.
@@ -28,7 +28,7 @@ export function CartaoPrecos({ dados, aoTocar }) {
     <Pressable onPress={aoTocar} accessibilityRole="button">
       <Cartao style={estilos.atalho}>
         <Ionicons name="pricetags-outline" size={22} color={cores.marca} />
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: espaco.xs }}>
           <Text style={estilos.atalhoTitulo}>Preços dos seus produtos</Text>
           <Text style={estilos.atalhoTexto}>
             {inflacao
@@ -92,14 +92,14 @@ export function GraficoPreco({ historico }) {
             <Line key={`g${m}`} x1={MARGEM.esquerda} x2={largura - MARGEM.direita} y1={y(m)} y2={y(m)} stroke={cores.borda} strokeWidth={1} />
           ))}
           {marcas.map((m) => (
-            <TextoSvg key={`t${m}`} x={MARGEM.esquerda - 8} y={y(m) + 4} fontSize={11} fontFamily="sans-serif" fill={cores.textoSecundario} textAnchor="end">
+            <TextoSvg key={`t${m}`} x={MARGEM.esquerda - 8} y={y(m) + 4} fontSize={componentes.grafico.rotulo} fontFamily="sans-serif" fill={cores.textoSecundario} textAnchor="end">
               {valorEixo(m)}
             </TextoSvg>
           ))}
-          <TextoSvg x={MARGEM.esquerda} y={ALTURA - 6} fontSize={11} fontFamily="sans-serif" fill={cores.textoSecundario}>
+          <TextoSvg x={MARGEM.esquerda} y={ALTURA - 6} fontSize={componentes.grafico.rotulo} fontFamily="sans-serif" fill={cores.textoSecundario}>
             {diaMes(historico[0].data)}
           </TextoSvg>
-          <TextoSvg x={largura - MARGEM.direita} y={ALTURA - 6} fontSize={11} fontFamily="sans-serif" fill={cores.textoSecundario} textAnchor="end">
+          <TextoSvg x={largura - MARGEM.direita} y={ALTURA - 6} fontSize={componentes.grafico.rotulo} fontFamily="sans-serif" fill={cores.textoSecundario} textAnchor="end">
             {diaMes(historico.at(-1).data)}
           </TextoSvg>
 
@@ -114,7 +114,7 @@ export function GraficoPreco({ historico }) {
           {pontos.map((p, i) => (
             <Circle key={i} cx={p.x} cy={p.y} r={4} fill={cores.marca} stroke={cores.superficie} strokeWidth={2} />
           ))}
-          <TextoSvg x={ultimo.x + 8} y={ultimo.y + 4} fontSize={12} fontWeight="600" fontFamily="sans-serif" fill={cores.texto}>
+          <TextoSvg x={ultimo.x + 8} y={ultimo.y + 4} fontSize={fonte.xs} fontWeight={peso.medio} fontFamily="sans-serif" fill={cores.texto}>
             {reais(precos.at(-1))}
           </TextoSvg>
         </Svg>
@@ -124,9 +124,9 @@ export function GraficoPreco({ historico }) {
 }
 
 const estilos = StyleSheet.create({
-  variacao: { flexDirection: "row", alignItems: "center", gap: 2 },
-  variacaoTexto: { fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
-  atalho: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: espaco.p },
-  atalhoTitulo: { fontSize: 15, fontWeight: "700", color: cores.texto },
-  atalhoTexto: { fontSize: 13, color: cores.textoSecundario },
+  variacao: { flexDirection: "row", alignItems: "center", gap: espaco.xs },
+  variacaoTexto: { fontWeight: peso.medio, color: cores.texto, fontVariant: ["tabular-nums"] },
+  atalho: { flexDirection: "row", alignItems: "center", gap: espaco.pm, marginTop: espaco.p },
+  atalhoTitulo: { fontSize: fonte.md, fontWeight: peso.forte, color: cores.texto },
+  atalhoTexto: { fontSize: fonte.sm, color: cores.textoSecundario },
 });

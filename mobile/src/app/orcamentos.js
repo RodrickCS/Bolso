@@ -7,7 +7,7 @@ import { Aviso, Botao } from "../componentes/ui";
 import { api } from "../lib/api";
 import { iconeCategoria } from "../lib/categorias";
 import { lerValorBR, mesAtual, reais } from "../lib/formato";
-import { cores, espaco, raio } from "../lib/tema";
+import { cores, espaco, raios, fonte } from "../lib/tema";
 
 const mostrarValor = (valor) => (valor ? String(valor).replace(".", ",") : "");
 
@@ -95,11 +95,11 @@ export default function Orcamentos() {
 
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: espaco.p },
-  dica: { fontSize: 14, color: cores.textoSecundario, marginBottom: espaco.p },
-  linha: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56 },
-  icone: { width: 36, height: 36, borderRadius: 18, backgroundColor: cores.superficie, alignItems: "center", justifyContent: "center" },
-  nome: { fontSize: 16, color: cores.texto },
-  gasto: { fontSize: 13, color: cores.textoSecundario },
+  dica: { fontSize: fonte.sm, color: cores.textoSecundario, marginBottom: espaco.p },
+  linha: { flexDirection: "row", alignItems: "center", gap: espaco.pm, minHeight: 56 },
+  icone: { width: 36, height: 36, borderRadius: raios.pilula, backgroundColor: cores.superficie, alignItems: "center", justifyContent: "center" },
+  nome: { fontSize: fonte.md, color: cores.texto },
+  gasto: { fontSize: fonte.sm, color: cores.textoSecundario },
   campo: {
     flexDirection: "row",
     alignItems: "center",
@@ -107,11 +107,11 @@ const estilos = StyleSheet.create({
     minHeight: 44,
     borderWidth: 1,
     borderColor: cores.borda,
-    borderRadius: raio,
+    borderRadius: raios.m,
     backgroundColor: cores.superficie,
-    paddingHorizontal: 12,
+    paddingHorizontal: espaco.pm,
   },
-  prefixo: { color: cores.textoSecundario, fontSize: 15, marginRight: 6 },
-  entrada: { flex: 1, fontSize: 16, color: cores.texto, paddingVertical: 8 },
+  prefixo: { color: cores.textoSecundario, fontSize: fonte.md, marginRight: espaco.p },
+  entrada: { flex: 1, fontSize: fonte.md, color: cores.texto, paddingVertical: espaco.p },
   rodape: { padding: espaco.m, gap: espaco.p, borderTopWidth: 1, borderTopColor: cores.borda, backgroundColor: cores.fundo },
 });

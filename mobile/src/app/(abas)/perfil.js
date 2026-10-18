@@ -8,7 +8,7 @@ import { Avatar, Aviso, Botao, Campo, Cartao } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { dolares, mesAtual, nomeDoMes } from "../../lib/formato";
 import { useSessao } from "../../lib/sessao";
-import { cores, espaco, raio } from "../../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha } from "../../lib/tema";
 
 const ROTULO_TAREFA = {
   "extrair:CUPOM": "Cupons",
@@ -110,13 +110,13 @@ export default function Perfil() {
     <ScrollView contentContainerStyle={estilos.conteudo}>
       <Cartao style={estilos.conta}>
         <Avatar nome={usuario?.nome} tamanho={52} />
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: espaco.xs }}>
           <Text style={estilos.nome} numberOfLines={1}>{usuario?.nome}</Text>
           <Text style={estilos.email} numberOfLines={1}>{usuario?.email}</Text>
         </View>
       </Cartao>
 
-      <Cartao style={{ paddingVertical: 4 }}>
+      <Cartao style={{ paddingVertical: espaco.xs }}>
         <ItemMenu icone="card-outline" titulo="Contas e cartões" aoTocar={() => router.push("/contas")} />
         <ItemMenu icone="repeat" titulo="Gastos fixos" aoTocar={() => router.push("/fixos")} />
         <ItemMenu icone="pie-chart-outline" titulo="Orçamentos" aoTocar={() => router.push("/orcamentos")} />
@@ -141,7 +141,7 @@ export default function Perfil() {
 
       <Text style={estilos.secao}>Seus dados</Text>
       <Aviso mensagem={erro} />
-      <Cartao style={{ paddingVertical: 4 }}>
+      <Cartao style={{ paddingVertical: espaco.xs }}>
         <ItemMenu
           icone="download-outline"
           titulo={exportando ? "Gerando planilha..." : "Exportar lançamentos (planilha)"}
@@ -160,20 +160,20 @@ export default function Perfil() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, gap: 12, paddingBottom: 40 },
-  nome: { fontSize: 18, fontWeight: "700", color: cores.texto },
-  email: { fontSize: 14, color: cores.textoSecundario },
-  conta: { flexDirection: "row", alignItems: "center", gap: 14 },
-  secao: { fontSize: 17, fontWeight: "700", color: cores.texto, marginTop: espaco.p },
-  item: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 52 },
-  itemTexto: { flex: 1, fontSize: 16, color: cores.texto },
-  custo: { fontSize: 32, fontWeight: "700", color: cores.texto },
-  legenda: { fontSize: 14, color: cores.textoSecundario, marginTop: -6 },
+  conteudo: { padding: espaco.m, gap: espaco.pm, paddingBottom: espaco.ggg },
+  nome: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  email: { fontSize: fonte.sm, color: cores.textoSecundario },
+  conta: { flexDirection: "row", alignItems: "center", gap: espaco.m },
+  secao: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto, marginTop: espaco.p },
+  item: { flexDirection: "row", alignItems: "center", gap: espaco.pm, minHeight: 52 },
+  itemTexto: { flex: 1, fontSize: fonte.md, color: cores.texto },
+  custo: { fontSize: fonte.xxl, fontWeight: peso.forte, color: cores.texto },
+  legenda: { fontSize: fonte.sm, color: cores.textoSecundario, marginTop: -6 },
   linha: { flexDirection: "row", justifyContent: "space-between" },
-  linhaTexto: { fontSize: 15, color: cores.texto },
-  linhaValor: { fontSize: 15, color: cores.texto, fontVariant: ["tabular-nums"] },
-  fundoModal: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", padding: espaco.m },
-  modal: { backgroundColor: cores.superficie, borderRadius: raio, padding: espaco.m, gap: 12 },
-  modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.texto },
-  modalTexto: { fontSize: 15, lineHeight: 21, color: cores.textoSecundario },
+  linhaTexto: { fontSize: fonte.md, color: cores.texto },
+  linhaValor: { fontSize: fonte.md, color: cores.texto, fontVariant: ["tabular-nums"] },
+  fundoModal: { flex: 1, backgroundColor: cores.veu, justifyContent: "center", padding: espaco.m },
+  modal: { backgroundColor: cores.superficie, borderRadius: raios.m, padding: espaco.m, gap: espaco.pm },
+  modalTitulo: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  modalTexto: { fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.textoSecundario },
 });

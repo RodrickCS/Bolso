@@ -6,7 +6,7 @@ import { GraficoPreco, Variacao } from "../componentes/precos";
 import { Aviso, Botao, Campo, Cartao } from "../componentes/ui";
 import { api } from "../lib/api";
 import { dataBR, diaMes, reais, semAcentos } from "../lib/formato";
-import { cores, espaco, raio } from "../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha } from "../lib/tema";
 
 const quantidade = (q) => q.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 
@@ -133,7 +133,7 @@ export default function Produto() {
         <Aviso mensagem={erro} />
       </View>
     ) : (
-      <ActivityIndicator style={{ marginTop: 48 }} color={cores.marca} />
+      <ActivityIndicator style={{ marginTop: espaco.ggg }} color={cores.marca} />
     );
   }
 
@@ -174,10 +174,10 @@ export default function Produto() {
       {produto.porMercado.length > 0 && (
         <>
           <Text style={estilos.secao}>{varios ? "Onde está mais barato" : "Onde você compra"}</Text>
-          <Cartao style={{ gap: 12 }}>
+          <Cartao style={{ gap: espaco.pm }}>
             {produto.porMercado.map((m, i) => (
               <View key={m.estabelecimento} style={estilos.linha}>
-                <View style={{ flex: 1, gap: 2 }}>
+                <View style={{ flex: 1, gap: espaco.xs }}>
                   <View style={estilos.mercado}>
                     <Text style={estilos.texto} numberOfLines={1}>{m.estabelecimento}</Text>
                     {varios && i === 0 && (
@@ -199,10 +199,10 @@ export default function Produto() {
       {produto.historico.length > 0 && (
         <>
           <Text style={estilos.secao}>Compras</Text>
-          <Cartao style={{ gap: 12 }}>
+          <Cartao style={{ gap: espaco.pm }}>
             {[...produto.historico].reverse().map((h, i) => (
               <View key={i} style={estilos.linha}>
-                <View style={{ flex: 1, gap: 2 }}>
+                <View style={{ flex: 1, gap: espaco.xs }}>
                   <Text style={estilos.texto} numberOfLines={1}>{h.estabelecimento ?? "Sem nome"}</Text>
                   <Text style={estilos.secundario}>
                     {diaMes(h.data)} · {quantidade(h.quantidade)} × {reais(h.preco)}
@@ -229,30 +229,30 @@ export default function Produto() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, gap: 12, paddingBottom: 40 },
-  indicadores: { flexDirection: "row", gap: 12 },
-  indicador: { flex: 1, gap: 4 },
-  valor: { fontSize: 22, fontWeight: "700", color: cores.texto },
-  secao: { fontSize: 17, fontWeight: "700", color: cores.texto, marginTop: espaco.p },
-  linha: { flexDirection: "row", alignItems: "center", gap: 12 },
+  conteudo: { padding: espaco.m, gap: espaco.pm, paddingBottom: espaco.ggg },
+  indicadores: { flexDirection: "row", gap: espaco.pm },
+  indicador: { flex: 1, gap: espaco.xs },
+  valor: { fontSize: fonte.xl, fontWeight: peso.forte, color: cores.texto },
+  secao: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto, marginTop: espaco.p },
+  linha: { flexDirection: "row", alignItems: "center", gap: espaco.pm },
   mercado: { flexDirection: "row", alignItems: "center", gap: espaco.p, flexShrink: 1 },
   selo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
+    gap: espaco.xs,
     backgroundColor: cores.marcaSuave,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    borderRadius: raios.pilula,
+    paddingHorizontal: espaco.p,
+    paddingVertical: espaco.xs,
   },
-  seloTexto: { fontSize: 12, fontWeight: "600", color: cores.texto },
-  texto: { fontSize: 15, color: cores.texto, flexShrink: 1 },
-  secundario: { fontSize: 13, color: cores.textoSecundario },
-  ajuda: { fontSize: 13, lineHeight: 19, color: cores.textoSuave, marginTop: espaco.p },
+  seloTexto: { fontSize: fonte.xs, fontWeight: peso.medio, color: cores.texto },
+  texto: { fontSize: fonte.md, color: cores.texto, flexShrink: 1 },
+  secundario: { fontSize: fonte.sm, color: cores.textoSecundario },
+  ajuda: { fontSize: fonte.sm, lineHeight: entrelinha.sm, color: cores.textoSuave, marginTop: espaco.p },
   separador: { height: 1, backgroundColor: cores.borda },
-  opcaoJuntar: { paddingVertical: 12, gap: 2 },
-  fundoModal: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", padding: espaco.m },
-  modal: { backgroundColor: cores.superficie, borderRadius: raio, padding: espaco.m, gap: 12 },
-  modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.texto },
-  modalTexto: { fontSize: 15, lineHeight: 21, color: cores.textoSecundario },
+  opcaoJuntar: { paddingVertical: espaco.pm, gap: espaco.xs },
+  fundoModal: { flex: 1, backgroundColor: cores.veu, justifyContent: "center", padding: espaco.m },
+  modal: { backgroundColor: cores.superficie, borderRadius: raios.m, padding: espaco.m, gap: espaco.pm },
+  modalTitulo: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  modalTexto: { fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.textoSecundario },
 });

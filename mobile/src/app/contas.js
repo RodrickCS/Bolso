@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../componentes/ui";
 import { api } from "../lib/api";
 import { PELO_TIPO, TIPOS_CONTA } from "../lib/contas";
-import { cores, espaco } from "../lib/tema";
+import { cores, espaco, fonte, peso } from "../lib/tema";
 import { useAvisos } from "../componentes/avisos";
 
 export default function Contas() {
@@ -61,7 +61,7 @@ export default function Contas() {
         </Text>
 
         {contas.length > 0 && (
-          <Cartao style={{ gap: 4 }}>
+          <Cartao style={{ gap: espaco.xs }}>
             {contas.map((conta) => (
               <View key={conta.id} style={estilos.linha}>
                 <Ionicons name={PELO_TIPO[conta.tipo]?.icone ?? "wallet-outline"} size={22} color={cores.marca} />
@@ -88,9 +88,9 @@ export default function Contas() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, gap: espaco.p, paddingBottom: 40 },
-  dica: { fontSize: 14, color: cores.textoSecundario, marginBottom: espaco.p },
-  linha: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56 },
-  nome: { fontSize: 16, color: cores.texto, fontWeight: "600" },
-  tipo: { fontSize: 13, color: cores.textoSecundario },
+  conteudo: { padding: espaco.m, gap: espaco.p, paddingBottom: espaco.ggg },
+  dica: { fontSize: fonte.sm, color: cores.textoSecundario, marginBottom: espaco.p },
+  linha: { flexDirection: "row", alignItems: "center", gap: espaco.pm, minHeight: 56 },
+  nome: { fontSize: fonte.md, color: cores.texto, fontWeight: peso.medio },
+  tipo: { fontSize: fonte.sm, color: cores.textoSecundario },
 });

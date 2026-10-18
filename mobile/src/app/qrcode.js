@@ -7,7 +7,7 @@ import { Resultado } from "../componentes/resultado";
 import { Aviso, Botao, Cartao } from "../componentes/ui";
 import { aguardarDocumento, api } from "../lib/api";
 import { baixarPaginaNfce, pareceNfce } from "../lib/nfce";
-import { cores, espaco, raio } from "../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha } from "../lib/tema";
 
 // Lê o QR Code do cupom fiscal (NFC-e). Os itens vêm da página da SEFAZ, não de uma foto.
 export default function LerQrCode() {
@@ -51,12 +51,12 @@ export default function LerQrCode() {
     ocupado.current = false;
   }
 
-  if (!permissao) return <ActivityIndicator style={{ marginTop: 48 }} color={cores.marca} />;
+  if (!permissao) return <ActivityIndicator style={{ marginTop: espaco.ggg }} color={cores.marca} />;
 
   if (!permissao.granted) {
     return (
       <View style={estilos.conteudo}>
-        <Cartao style={{ gap: 12 }}>
+        <Cartao style={{ gap: espaco.pm }}>
           <Ionicons name="qr-code-outline" size={32} color={cores.marca} />
           <Text style={estilos.titulo}>O Bolso precisa da câmera</Text>
           <Text style={estilos.texto}>
@@ -74,7 +74,7 @@ export default function LerQrCode() {
 
   if (etapa === "mirando") {
     return (
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <View style={{ flex: 1, backgroundColor: cores.camera }}>
         <CameraView
           style={estilos.camera}
           facing="back"
@@ -114,23 +114,23 @@ export default function LerQrCode() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, gap: 12 },
+  conteudo: { padding: espaco.m, gap: espaco.pm },
   camera: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", gap: espaco.m },
-  titulo: { fontSize: 17, fontWeight: "700", color: cores.texto },
-  texto: { fontSize: 15, lineHeight: 21, color: cores.textoSecundario, textAlign: "center" },
+  titulo: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  texto: { fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.textoSecundario, textAlign: "center" },
   // Posição explícita: StyleSheet.absoluteFillObject não existe mais nesta versão do React Native
   sobreposicao: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center", gap: espaco.g },
-  moldura: { width: 240, height: 240, borderWidth: 3, borderColor: "#fff", borderRadius: raio * 2 },
+  moldura: { width: 240, height: 240, borderWidth: 3, borderColor: cores.sobreEscuro, borderRadius: raios.xg },
   dica: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
+    color: cores.sobreEscuro,
+    fontSize: fonte.md,
+    fontWeight: peso.medio,
     textAlign: "center",
     paddingHorizontal: espaco.m,
     paddingVertical: espaco.p,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: raio,
+    backgroundColor: cores.veuForte,
+    borderRadius: raios.m,
     overflow: "hidden",
   },
   avisoCamera: { position: "absolute", left: espaco.m, right: espaco.m, bottom: espaco.g },

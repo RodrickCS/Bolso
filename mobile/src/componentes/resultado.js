@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { reais } from "../lib/formato";
-import { cores, espaco } from "../lib/tema";
+import { cores, espaco, fonte, peso } from "../lib/tema";
 import { Aviso, Cartao } from "./ui";
 
 // O que saiu de um envio: os lançamentos criados, ou o motivo de não ter dado para ler.
@@ -46,13 +46,13 @@ export function Resultado({ documento, aoNaoRepetir }) {
 }
 
 const estilos = StyleSheet.create({
-  repete: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  link: { fontSize: 13, fontWeight: "600", color: cores.marca, marginLeft: espaco.p },
+  repete: { flexDirection: "row", alignItems: "center", gap: espaco.xs, marginTop: espaco.xs },
+  link: { fontSize: fonte.sm, fontWeight: peso.medio, color: cores.marca, marginLeft: espaco.p },
   resultadoTopo: { flexDirection: "row", alignItems: "center", gap: espaco.p },
-  resultadoTitulo: { fontSize: 16, fontWeight: "700", color: cores.texto },
-  observacao: { fontSize: 14, color: cores.textoSecundario },
+  resultadoTitulo: { fontSize: fonte.md, fontWeight: peso.forte, color: cores.texto },
+  observacao: { fontSize: fonte.sm, color: cores.textoSecundario },
   resultadoLinha: { flexDirection: "row", alignItems: "center", gap: espaco.p },
-  resultadoDescricao: { fontSize: 15, color: cores.texto },
-  resultadoCategoria: { fontSize: 13, color: cores.textoSecundario },
-  resultadoValor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
+  resultadoDescricao: { fontSize: fonte.md, color: cores.texto },
+  resultadoCategoria: { fontSize: fonte.sm, color: cores.textoSecundario },
+  resultadoValor: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto, fontVariant: ["tabular-nums"] },
 });

@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LogoBolso } from "../componentes/logo";
 import { Aviso, Botao, Campo, Rotulo } from "../componentes/ui";
 import { useSessao } from "../lib/sessao";
-import { cores, espaco } from "../lib/tema";
+import { cores, espaco, fonte, peso, entrelinha, componentes } from "../lib/tema";
 
 export default function Entrar() {
   const { entrar, registrar } = useSessao();
@@ -74,7 +74,7 @@ export default function Entrar() {
                   textContentType={cadastro ? "newPassword" : "password"}
                   returnKeyType="go"
                   onSubmitEditing={enviar}
-                  style={{ paddingRight: 52 }}
+                  style={{ paddingRight: componentes.toqueMinimo + espaco.p }}
                 />
                 <Pressable
                   onPress={() => setVerSenha(!verSenha)}
@@ -114,12 +114,12 @@ export default function Entrar() {
 const estilos = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.fundo },
   conteudo: { flexGrow: 1, justifyContent: "center", padding: espaco.g, gap: espaco.g },
-  marca: { gap: 12 },
-  titulo: { fontSize: 28, fontWeight: "700", color: cores.texto, marginTop: espaco.p },
-  subtitulo: { fontSize: 16, lineHeight: 23, color: cores.textoSecundario },
-  formulario: { gap: 4 },
+  marca: { gap: espaco.pm },
+  titulo: { fontSize: fonte.xxl, fontWeight: peso.forte, color: cores.texto, marginTop: espaco.p },
+  subtitulo: { fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.textoSecundario },
+  formulario: { gap: espaco.xs },
   olho: { position: "absolute", right: 4, top: 0, bottom: 0, width: 48, alignItems: "center", justifyContent: "center" },
   alternar: { alignSelf: "center", minHeight: 44, justifyContent: "center", paddingHorizontal: espaco.p },
-  alternarTexto: { fontSize: 15, color: cores.textoSecundario },
-  alternarLink: { color: cores.marca, fontWeight: "600" },
+  alternarTexto: { fontSize: fonte.md, color: cores.textoSecundario },
+  alternarLink: { color: cores.marca, fontWeight: peso.medio },
 });

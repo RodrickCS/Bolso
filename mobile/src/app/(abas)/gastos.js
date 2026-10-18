@@ -6,11 +6,11 @@ import { Aviso, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { iconeCategoria } from "../../lib/categorias";
 import { diaMes, mesAtual, reais } from "../../lib/formato";
-import { cores, espaco, raio } from "../../lib/tema";
+import { cores, espaco, raios, fonte, peso } from "../../lib/tema";
 import { useAvisos } from "../../componentes/avisos";
 
+// Lançado à mão é o caso comum: só as outras origens aparecem na linha
 const ROTULO_ORIGEM = {
-  MANUAL: "Manual",
   TEXTO: "Texto",
   CUPOM: "Cupom",
   FATURA: "Fatura",
@@ -70,7 +70,7 @@ function ItemGasto({ transacao, primeiro, ultimo, aoTocar, aoSegurar }) {
       <View style={[estilos.icone, receita && { backgroundColor: cores.marcaSuave }]}>
         <Ionicons name={iconeCategoria(transacao.categoria?.nome)} size={18} color={receita ? cores.marca : cores.textoSecundario} />
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: espaco.xs }}>
         <Text style={estilos.descricao} numberOfLines={1}>{transacao.descricao}</Text>
         <Text style={estilos.detalhes} numberOfLines={1}>{detalhes.join(" · ")}</Text>
         {transacao.recorrencia?.ativa && !transacao.conciliadaComId && (
@@ -168,7 +168,7 @@ export default function Gastos() {
       contentContainerStyle={estilos.lista}
       stickySectionHeadersEnabled={false}
       ListHeaderComponent={
-        <View style={{ gap: 12, marginBottom: espaco.p }}>
+        <View style={{ gap: espaco.pm, marginBottom: espaco.p }}>
           <SeletorMes mes={mes} aoMudar={setMes} />
           <Aviso mensagem={erro} />
           {transacoes?.length > 0 && <Resumo transacoes={transacoes} />}
@@ -219,48 +219,48 @@ export default function Gastos() {
 }
 
 const estilos = StyleSheet.create({
-  lista: { padding: espaco.m, paddingBottom: 40 },
+  lista: { padding: espaco.m, paddingBottom: espaco.ggg },
   cabecalho: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  dica: { fontSize: 13, color: cores.textoSuave, flex: 1 },
-  novo: { flexDirection: "row", alignItems: "center", gap: 2, minHeight: 36 },
-  novoTexto: { fontSize: 15, fontWeight: "600", color: cores.marca },
+  dica: { fontSize: fonte.sm, color: cores.textoSuave, flex: 1 },
+  novo: { flexDirection: "row", alignItems: "center", gap: espaco.xs, minHeight: 36 },
+  novoTexto: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.marca },
   resumo: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: cores.superficie,
-    borderRadius: raio,
+    borderRadius: raios.m,
     borderWidth: 1,
     borderColor: cores.borda,
-    paddingVertical: 12,
+    paddingVertical: espaco.pm,
     paddingHorizontal: espaco.m,
-    gap: 12,
+    gap: espaco.pm,
   },
-  resumoRotulo: { fontSize: 12, color: cores.textoSecundario },
-  resumoValor: { fontSize: 16, fontWeight: "700", color: cores.texto },
+  resumoRotulo: { fontSize: fonte.xs, color: cores.textoSecundario },
+  resumoValor: { fontSize: fonte.md, fontWeight: peso.forte, color: cores.texto },
   resumoDivisor: { width: 1, alignSelf: "stretch", backgroundColor: cores.borda },
   dia: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: espaco.m, marginBottom: espaco.p },
-  diaTitulo: { fontSize: 14, fontWeight: "700", color: cores.texto },
-  diaTotal: { fontSize: 13, color: cores.textoSecundario },
+  diaTitulo: { fontSize: fonte.sm, fontWeight: peso.forte, color: cores.texto },
+  diaTotal: { fontSize: fonte.sm, color: cores.textoSecundario },
   // As linhas de um mesmo dia formam um cartão só: bordas arredondadas só na primeira e na última
   item: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: espaco.pm,
     backgroundColor: cores.superficie,
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderTopWidth: 1,
     borderColor: cores.borda,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: espaco.m,
+    paddingVertical: espaco.pm,
   },
-  itemPrimeiro: { borderTopLeftRadius: raio, borderTopRightRadius: raio },
-  itemUltimo: { borderBottomWidth: 1, borderBottomLeftRadius: raio, borderBottomRightRadius: raio },
-  icone: { width: 40, height: 40, borderRadius: 20, backgroundColor: cores.fundo, alignItems: "center", justifyContent: "center" },
-  descricao: { fontSize: 15, fontWeight: "600", color: cores.texto },
-  detalhes: { fontSize: 13, color: cores.textoSecundario },
-  etiqueta: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
-  etiquetaTexto: { fontSize: 12, color: cores.textoSecundario },
-  valor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
+  itemPrimeiro: { borderTopLeftRadius: raios.m, borderTopRightRadius: raios.m },
+  itemUltimo: { borderBottomWidth: 1, borderBottomLeftRadius: raios.m, borderBottomRightRadius: raios.m },
+  icone: { width: 40, height: 40, borderRadius: raios.pilula, backgroundColor: cores.fundo, alignItems: "center", justifyContent: "center" },
+  descricao: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto },
+  detalhes: { fontSize: fonte.sm, color: cores.textoSecundario },
+  etiqueta: { flexDirection: "row", alignItems: "center", gap: espaco.xs, marginTop: espaco.xs },
+  etiquetaTexto: { fontSize: fonte.xs, color: cores.textoSecundario },
+  valor: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto, fontVariant: ["tabular-nums"] },
   valorRiscado: { color: cores.textoSuave, textDecorationLine: "line-through" },
 });

@@ -2,12 +2,12 @@ import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop, Text as TextoSvg } from "react-native-svg";
 import { reais } from "../lib/formato";
-import { cores } from "../lib/tema";
+import { cores, espaco, fonte, peso, componentes } from "../lib/tema";
 
 // Cores das fatias, em ordem fixa (paleta categórica validada: separação para daltonismo e entre vizinhas).
 // "Outros" junta o resto em cinza. Como três tons ficam abaixo de 3:1 no branco, a legenda sempre mostra nome e valor.
-export const CORES_FATIAS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"];
-export const COR_OUTROS = "#a8a6a1";
+export const CORES_FATIAS = cores.dados;
+export const COR_OUTROS = cores.dadosOutros;
 
 // Até 5 categorias com cor própria; o resto (e a categoria "Outros") vira uma fatia só
 export function fatiasDoMes(porCategoria, total) {
@@ -94,7 +94,7 @@ export function AreaMeses({ historico, altura = 96 }) {
           <Path d={area} fill="url(#lavagem)" />
           <Path d={linha} stroke={cores.marca} strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" />
           <Circle cx={fimX} cy={fimY} r={4} fill={cores.marca} stroke={cores.superficie} strokeWidth={2} />
-          <TextoSvg x={Math.min(fimX, largura - 4)} y={fimY - 9} fontSize={11} fontWeight="600" fill={cores.texto} textAnchor="end" fontFamily="sans-serif">
+          <TextoSvg x={Math.min(fimX, largura - 4)} y={fimY - 9} fontSize={componentes.grafico.rotulo} fontWeight={peso.medio} fill={cores.texto} textAnchor="end" fontFamily="sans-serif">
             {reais(ultimo)}
           </TextoSvg>
           {historico.map((h, i) => (
@@ -102,7 +102,7 @@ export function AreaMeses({ historico, altura = 96 }) {
               key={h.mes}
               x={x(i)}
               y={altura - 4}
-              fontSize={10}
+              fontSize={componentes.grafico.rotulo}
               fill={i === historico.length - 1 ? cores.texto : cores.textoSecundario}
               fontWeight={i === historico.length - 1 ? "600" : "400"}
               textAnchor={i === 0 ? "start" : i === historico.length - 1 ? "end" : "middle"}
@@ -118,7 +118,7 @@ export function AreaMeses({ historico, altura = 96 }) {
 }
 
 const estilos = StyleSheet.create({
-  centro: { alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
-  centroValor: { fontSize: 16, fontWeight: "700", color: cores.texto },
-  centroLegenda: { fontSize: 12, color: cores.textoSecundario, marginTop: 2 },
+  centro: { alignItems: "center", justifyContent: "center", paddingHorizontal: espaco.g },
+  centroValor: { fontSize: fonte.md, fontWeight: peso.forte, color: cores.texto },
+  centroLegenda: { fontSize: fonte.xs, color: cores.textoSecundario, marginTop: espaco.xs },
 });

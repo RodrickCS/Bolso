@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { cores, espaco } from "../lib/tema";
+import { cores, espaco, fonte, peso } from "../lib/tema";
 import { Cartao } from "./ui";
 import { useAvisos } from "./avisos";
 
@@ -63,7 +63,7 @@ export function HistoricoEnvios({ documentos, aoReenviarTexto, aoApagar }) {
   return (
     <>
       <Text style={estilos.secao}>Últimos envios</Text>
-      <Cartao style={{ gap: 2 }}>
+      <Cartao style={{ gap: espaco.xs }}>
         {documentos.map((d) => (
           <Pressable key={d.id} onPress={() => abrirAcoes(d)} style={({ pressed }) => [estilos.linha, pressed && { opacity: 0.6 }]}>
             <Situacao documento={d} />
@@ -85,9 +85,9 @@ export function HistoricoEnvios({ documentos, aoReenviarTexto, aoApagar }) {
 }
 
 const estilos = StyleSheet.create({
-  secao: { fontSize: 17, fontWeight: "700", color: cores.texto, marginTop: espaco.m },
-  linha: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56 },
-  titulo: { fontSize: 15, color: cores.texto },
-  subtitulo: { fontSize: 13, color: cores.textoSecundario },
+  secao: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto, marginTop: espaco.m },
+  linha: { flexDirection: "row", alignItems: "center", gap: espaco.pm, minHeight: 56 },
+  titulo: { fontSize: fonte.md, color: cores.texto },
+  subtitulo: { fontSize: fonte.sm, color: cores.textoSecundario },
   subtituloErro: { color: cores.erro },
 });

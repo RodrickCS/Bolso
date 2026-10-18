@@ -9,7 +9,7 @@ import { api } from "../lib/api";
 import { iconeCategoria } from "../lib/categorias";
 import { PELO_TIPO } from "../lib/contas";
 import { dataBR, hojeISO, lerDataBR, lerValorBR, reais, valorParaCampo } from "../lib/formato";
-import { cores, espaco } from "../lib/tema";
+import { cores, espaco, raios, fonte, peso } from "../lib/tema";
 import { useAvisos } from "../componentes/avisos";
 
 const TIPOS = [
@@ -135,7 +135,7 @@ export default function Lancamento() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Stack.Screen options={{ title: editando ? "Editar lançamento" : "Novo lançamento" }} />
       {carregando ? (
-        <ActivityIndicator color={cores.marca} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={cores.marca} style={{ marginTop: espaco.ggg }} />
       ) : (
         <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
           {original?.conciliadaComId && (
@@ -232,23 +232,23 @@ export default function Lancamento() {
 
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: espaco.p, paddingBottom: espaco.g },
-  nota: { flexDirection: "row", gap: 6, alignItems: "center", marginBottom: espaco.p },
-  notaTexto: { flex: 1, fontSize: 13, color: cores.textoSecundario },
-  dica: { fontSize: 13, color: cores.textoSuave },
+  nota: { flexDirection: "row", gap: espaco.p, alignItems: "center", marginBottom: espaco.p },
+  notaTexto: { flex: 1, fontSize: fonte.sm, color: cores.textoSecundario },
+  dica: { fontSize: fonte.sm, color: cores.textoSuave },
   valorCartao: {
-    gap: 12,
+    gap: espaco.pm,
     padding: espaco.m,
     marginBottom: espaco.p,
     backgroundColor: cores.superficie,
-    borderRadius: 16,
+    borderRadius: raios.g,
     borderWidth: 1,
     borderColor: cores.borda,
   },
-  valorLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
-  valorMoeda: { fontSize: 24, fontWeight: "600", color: cores.textoSecundario },
-  valorEntrada: { flex: 1, minWidth: 0, fontSize: 40, fontWeight: "700", color: cores.texto, paddingVertical: 4 },
+  valorLinha: { flexDirection: "row", alignItems: "center", gap: espaco.p },
+  valorMoeda: { fontSize: fonte.xl, fontWeight: peso.medio, color: cores.textoSecundario },
+  valorEntrada: { flex: 1, minWidth: 0, fontSize: fonte.numero, fontWeight: peso.forte, color: cores.texto, paddingVertical: espaco.xs },
   item: { flexDirection: "row", justifyContent: "space-between", gap: espaco.p },
-  itemNome: { flex: 1, fontSize: 14, color: cores.texto },
-  itemValor: { fontSize: 14, color: cores.texto, fontVariant: ["tabular-nums"] },
+  itemNome: { flex: 1, fontSize: fonte.sm, color: cores.texto },
+  itemValor: { fontSize: fonte.sm, color: cores.texto, fontVariant: ["tabular-nums"] },
   rodape: { padding: espaco.m, gap: espaco.p, borderTopWidth: 1, borderTopColor: cores.borda, backgroundColor: cores.fundo },
 });

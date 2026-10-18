@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { cores, espaco, raio } from "../lib/tema";
+import { cores, espaco, raios, fonte, peso, componentes } from "../lib/tema";
 import { nomeDoMes, somarMes } from "../lib/formato";
 
 export function Botao({ titulo, aoTocar, icone, variante = "primario", carregando, desativado }) {
@@ -17,11 +17,11 @@ export function Botao({ titulo, aoTocar, icone, variante = "primario", carregand
       ]}
     >
       {carregando ? (
-        <ActivityIndicator color={primario ? "#fff" : cores.marca} />
+        <ActivityIndicator color={primario ? cores.sobreMarca : cores.marca} />
       ) : (
         <>
-          {icone && <Ionicons name={icone} size={20} color={primario ? "#fff" : cores.marca} />}
-          <Text style={[estilos.botaoTexto, { color: primario ? "#fff" : cores.marca }]}>{titulo}</Text>
+          {icone && <Ionicons name={icone} size={20} color={primario ? cores.sobreMarca : cores.marca} />}
+          <Text style={[estilos.botaoTexto, { color: primario ? cores.sobreMarca : cores.marca }]}>{titulo}</Text>
         </>
       )}
     </Pressable>
@@ -43,7 +43,7 @@ export function Opcoes({ opcoes, valor, aoMudar }) {
             accessibilityRole="radio"
             accessibilityState={{ selected: ativa }}
           >
-            {o.icone && <Ionicons name={o.icone} size={16} color={ativa ? "#fff" : cores.textoSecundario} />}
+            {o.icone && <Ionicons name={o.icone} size={16} color={ativa ? cores.sobreMarca : cores.textoSecundario} />}
             <Text style={[estilos.opcaoTexto, ativa && estilos.opcaoTextoAtiva]}>{o.rotulo}</Text>
           </Pressable>
         );
@@ -113,9 +113,9 @@ export function Vazio({ icone, texto }) {
 
 const estilos = StyleSheet.create({
   botao: {
-    minHeight: 48,
-    borderRadius: raio,
-    paddingHorizontal: espaco.m,
+    minHeight: componentes.botao.altura,
+    borderRadius: componentes.botao.raio,
+    paddingHorizontal: componentes.botao.paddingHorizontal,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -123,54 +123,54 @@ const estilos = StyleSheet.create({
   },
   botaoPrimario: { backgroundColor: cores.marca },
   botaoSecundario: { backgroundColor: cores.marcaSuave },
-  botaoTexto: { fontSize: 16, fontWeight: "600" },
+  botaoTexto: { fontSize: fonte.md, fontWeight: peso.medio },
   campo: {
-    minHeight: 48,
-    borderRadius: raio,
+    minHeight: componentes.campo.altura,
+    borderRadius: componentes.campo.raio,
     borderWidth: 1,
     borderColor: cores.borda,
     backgroundColor: cores.superficie,
-    paddingHorizontal: espaco.m,
-    fontSize: 16,
+    paddingHorizontal: componentes.campo.paddingHorizontal,
+    fontSize: fonte.md,
     color: cores.texto,
   },
   cartao: {
     backgroundColor: cores.superficie,
-    borderRadius: raio,
+    borderRadius: componentes.cartao.raio,
     borderWidth: 1,
     borderColor: cores.borda,
-    padding: espaco.m,
+    padding: componentes.cartao.padding,
   },
   aviso: {
     flexDirection: "row",
     gap: espaco.p,
     alignItems: "center",
     backgroundColor: cores.erroSuave,
-    borderRadius: raio,
-    padding: 12,
+    borderRadius: raios.m,
+    padding: espaco.pm,
   },
-  avisoTexto: { color: cores.erro, flex: 1, fontSize: 14 },
+  avisoTexto: { color: cores.erro, flex: 1, fontSize: fonte.sm },
   seletor: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: espaco.p },
-  seletorTexto: { fontSize: 17, fontWeight: "600", color: cores.texto },
+  seletorTexto: { fontSize: fonte.lg, fontWeight: peso.medio, color: cores.texto },
   opcoes: { flexDirection: "row", flexWrap: "wrap", gap: espaco.p },
   opcao: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    minHeight: 40,
+    gap: espaco.p,
+    paddingHorizontal: componentes.chip.paddingHorizontal,
+    minHeight: componentes.chip.altura,
     justifyContent: "center",
-    borderRadius: 999,
+    borderRadius: componentes.chip.raio,
     borderWidth: 1,
     borderColor: cores.borda,
     backgroundColor: cores.superficie,
   },
   opcaoAtiva: { backgroundColor: cores.marca, borderColor: cores.marca },
-  opcaoTexto: { fontSize: 14, color: cores.texto },
-  opcaoTextoAtiva: { color: "#fff", fontWeight: "600" },
+  opcaoTexto: { fontSize: fonte.sm, color: cores.texto },
+  opcaoTextoAtiva: { color: cores.sobreMarca, fontWeight: peso.medio },
   avatar: { backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
-  avatarTexto: { color: "#fff", fontWeight: "700" },
-  rotulo: { fontSize: 14, fontWeight: "600", color: cores.textoSecundario, marginTop: espaco.p },
-  vazio: { alignItems: "center", gap: espaco.p, paddingVertical: 48 },
-  vazioTexto: { color: cores.textoSecundario, textAlign: "center", fontSize: 15, maxWidth: 260 },
+  avatarTexto: { color: cores.sobreMarca, fontWeight: peso.forte },
+  rotulo: { fontSize: fonte.sm, fontWeight: peso.medio, color: cores.textoSecundario, marginTop: espaco.p },
+  vazio: { alignItems: "center", gap: espaco.p, paddingVertical: espaco.ggg },
+  vazioTexto: { color: cores.textoSecundario, textAlign: "center", fontSize: fonte.md, maxWidth: 260 },
 });

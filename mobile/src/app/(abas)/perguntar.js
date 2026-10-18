@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../../lib/api";
 import { reais } from "../../lib/formato";
-import { cores, espaco, raio } from "../../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha } from "../../lib/tema";
 
 const SUGESTOES = [
   "Quanto gastei este mês?",
@@ -116,7 +116,7 @@ export default function Perguntar() {
           accessibilityRole="button"
           accessibilityLabel="Enviar pergunta"
         >
-          <Ionicons name="arrow-up" size={22} color="#fff" />
+          <Ionicons name="arrow-up" size={22} color={cores.sobreMarca} />
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -124,29 +124,29 @@ export default function Perguntar() {
 }
 
 const estilos = StyleSheet.create({
-  conversa: { padding: espaco.m, gap: 10, paddingBottom: espaco.g },
-  bolha: { maxWidth: "88%", borderRadius: raio + 4, paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
+  conversa: { padding: espaco.m, gap: espaco.p, paddingBottom: espaco.g },
+  bolha: { maxWidth: "88%", borderRadius: raios.m + 4, paddingHorizontal: espaco.m, paddingVertical: espaco.p, gap: espaco.p },
   bolhaBolso: { alignSelf: "flex-start", backgroundColor: cores.superficie, borderWidth: 1, borderColor: cores.borda },
   bolhaMinha: { alignSelf: "flex-end", backgroundColor: cores.marca },
   bolhaErro: { backgroundColor: cores.erroSuave, borderColor: cores.erroSuave },
-  bolhaTexto: { fontSize: 15, lineHeight: 21, color: cores.texto },
-  bolhaTextoMinha: { color: "#fff" },
+  bolhaTexto: { fontSize: fonte.md, lineHeight: entrelinha.md, color: cores.texto },
+  bolhaTextoMinha: { color: cores.sobreMarca },
   pensando: { flexDirection: "row", alignItems: "center", gap: espaco.p },
-  linhas: { gap: 8, borderTopWidth: 1, borderTopColor: cores.borda, paddingTop: 8 },
+  linhas: { gap: espaco.p, borderTopWidth: 1, borderTopColor: cores.borda, paddingTop: espaco.p },
   linha: { flexDirection: "row", alignItems: "center", gap: espaco.m },
-  linhaRotulo: { fontSize: 14, color: cores.texto },
-  linhaDetalhe: { fontSize: 12, color: cores.textoSecundario },
-  linhaValor: { fontSize: 14, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
+  linhaRotulo: { fontSize: fonte.sm, color: cores.texto },
+  linhaDetalhe: { fontSize: fonte.xs, color: cores.textoSecundario },
+  linhaValor: { fontSize: fonte.sm, fontWeight: peso.medio, color: cores.texto, fontVariant: ["tabular-nums"] },
   sugestoes: { gap: espaco.p, marginTop: espaco.p },
   sugestao: {
     alignSelf: "flex-start",
-    borderRadius: 999,
+    borderRadius: raios.pilula,
     borderWidth: 1,
     borderColor: cores.marca,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: espaco.m,
+    paddingVertical: espaco.p,
   },
-  sugestaoTexto: { fontSize: 14, color: cores.marca, fontWeight: "600" },
+  sugestaoTexto: { fontSize: fonte.sm, color: cores.marca, fontWeight: peso.medio },
   barra: {
     flexDirection: "row",
     alignItems: "center",
@@ -162,13 +162,13 @@ const estilos = StyleSheet.create({
   campo: {
     flex: 1,
     minHeight: 44,
-    borderRadius: 22,
+    borderRadius: raios.pilula,
     borderWidth: 1,
     borderColor: cores.borda,
     paddingHorizontal: espaco.m,
-    fontSize: 16,
+    fontSize: fonte.md,
     color: cores.texto,
     backgroundColor: cores.fundo,
   },
-  enviar: { width: 44, height: 44, borderRadius: 22, backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
+  enviar: { width: 44, height: 44, borderRadius: raios.pilula, backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
 });

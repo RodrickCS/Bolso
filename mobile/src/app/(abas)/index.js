@@ -12,7 +12,7 @@ import { iconeCategoria } from "../../lib/categorias";
 import { diaMes, mesAtual, nomeDoMes, reais, somarMes } from "../../lib/formato";
 import { saudacao } from "../../lib/saudacao";
 import { useSessao } from "../../lib/sessao";
-import { cores, espaco, raio } from "../../lib/tema";
+import { cores, espaco, raios, fonte, peso, entrelinha } from "../../lib/tema";
 import { useAvisos } from "../../componentes/avisos";
 
 const percentualBR = (valor) => `${valor.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
@@ -147,7 +147,7 @@ function TransacoesRecentes({ transacoes }) {
   const recentes = transacoes.filter((t) => !t.conciliadaComId).slice(0, 5);
   if (!recentes.length) return null;
   return (
-    <Cartao style={{ gap: 12 }}>
+    <Cartao style={{ gap: espaco.pm }}>
       <View style={estilos.linhaTopo}>
         <Text style={estilos.secao}>Transações recentes</Text>
         <Pressable onPress={() => router.push("/gastos")} hitSlop={10} accessibilityRole="button">
@@ -271,7 +271,7 @@ export default function Painel() {
       <Aviso mensagem={erro} />
 
       {!doMes ? (
-        !erro && <ActivityIndicator style={{ marginTop: 48 }} color={cores.marca} />
+        !erro && <ActivityIndicator style={{ marginTop: espaco.ggg }} color={cores.marca} />
       ) : (
         <>
           <Destaque painel={doMes} mes={mes} />
@@ -294,48 +294,48 @@ export default function Painel() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, gap: 14, paddingBottom: 40 },
-  cabecalho: { flexDirection: "row", alignItems: "center", gap: 12 },
-  saudacao: { fontSize: 18, fontWeight: "700", color: cores.texto },
-  frase: { fontSize: 13, lineHeight: 18, color: cores.textoSecundario },
+  conteudo: { padding: espaco.m, gap: espaco.m, paddingBottom: espaco.ggg },
+  cabecalho: { flexDirection: "row", alignItems: "center", gap: espaco.pm },
+  saudacao: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  frase: { fontSize: fonte.sm, lineHeight: entrelinha.sm, color: cores.textoSecundario },
   seletor: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "center",
-    gap: 4,
+    gap: espaco.xs,
     backgroundColor: cores.superficie,
     borderWidth: 1,
     borderColor: cores.borda,
-    borderRadius: 999,
-    paddingHorizontal: 4,
+    borderRadius: raios.pilula,
+    paddingHorizontal: espaco.xs,
   },
   seletorSeta: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-  seletorTexto: { fontSize: 15, fontWeight: "600", color: cores.texto, minWidth: 140, textAlign: "center" },
-  destaque: { gap: 6, borderRadius: raio * 1.5, paddingVertical: espaco.g },
-  destaqueRotulo: { fontSize: 14, color: cores.textoSecundario },
-  destaqueValor: { fontSize: 44, fontWeight: "700", color: cores.texto, letterSpacing: -0.5 },
-  comparacaoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
-  comparacao: { fontSize: 14, color: cores.textoSecundario },
-  minis: { flexDirection: "row", gap: 10, marginTop: espaco.p },
-  mini: { flex: 1, gap: 6, backgroundColor: cores.fundo, borderRadius: raio, padding: 12 },
-  miniTopo: { flexDirection: "row", alignItems: "center", gap: 8 },
-  miniIcone: { width: 26, height: 26, borderRadius: 13, backgroundColor: cores.marcaSuave, alignItems: "center", justifyContent: "center" },
-  miniRotulo: { fontSize: 13, color: cores.textoSecundario },
-  miniValor: { fontSize: 18, fontWeight: "700", color: cores.texto },
-  grafico: { marginTop: espaco.m, gap: 4 },
-  graficoTitulo: { fontSize: 13, fontWeight: "600", color: cores.textoSecundario },
+  seletorTexto: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto, minWidth: 140, textAlign: "center" },
+  destaque: { gap: espaco.p, borderRadius: raios.g, paddingVertical: espaco.g },
+  destaqueRotulo: { fontSize: fonte.sm, color: cores.textoSecundario },
+  destaqueValor: { fontSize: fonte.heroi, fontWeight: peso.forte, color: cores.texto, letterSpacing: -0.5 },
+  comparacaoLinha: { flexDirection: "row", alignItems: "center", gap: espaco.p },
+  comparacao: { fontSize: fonte.sm, color: cores.textoSecundario },
+  minis: { flexDirection: "row", gap: espaco.p, marginTop: espaco.p },
+  mini: { flex: 1, gap: espaco.p, backgroundColor: cores.fundo, borderRadius: raios.m, padding: espaco.pm },
+  miniTopo: { flexDirection: "row", alignItems: "center", gap: espaco.p },
+  miniIcone: { width: 26, height: 26, borderRadius: raios.pilula, backgroundColor: cores.marcaSuave, alignItems: "center", justifyContent: "center" },
+  miniRotulo: { fontSize: fonte.sm, color: cores.textoSecundario },
+  miniValor: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  grafico: { marginTop: espaco.m, gap: espaco.xs },
+  graficoTitulo: { fontSize: fonte.sm, fontWeight: peso.medio, color: cores.textoSecundario },
   linhaTopo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: espaco.p },
-  secao: { fontSize: 17, fontWeight: "700", color: cores.texto },
-  link: { fontSize: 15, fontWeight: "600", color: cores.marca },
+  secao: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },
+  link: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.marca },
   categorias: { flexDirection: "row", alignItems: "center", gap: espaco.m },
-  legendaCategorias: { flex: 1, gap: 8 },
-  legendaLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
-  ponto: { width: 10, height: 10, borderRadius: 5 },
-  legendaNome: { flex: 1, fontSize: 14, color: cores.texto },
-  legendaPercentual: { fontSize: 14, fontWeight: "600", color: cores.texto },
-  transacao: { flexDirection: "row", alignItems: "center", gap: 12 },
-  transacaoIcone: { width: 40, height: 40, borderRadius: 20, backgroundColor: cores.fundo, alignItems: "center", justifyContent: "center" },
-  transacaoNome: { fontSize: 15, fontWeight: "600", color: cores.texto },
-  transacaoDetalhe: { fontSize: 13, color: cores.textoSecundario },
-  transacaoValor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
+  legendaCategorias: { flex: 1, gap: espaco.p },
+  legendaLinha: { flexDirection: "row", alignItems: "center", gap: espaco.p },
+  ponto: { width: 10, height: 10, borderRadius: raios.pilula },
+  legendaNome: { flex: 1, fontSize: fonte.sm, color: cores.texto },
+  legendaPercentual: { fontSize: fonte.sm, fontWeight: peso.medio, color: cores.texto },
+  transacao: { flexDirection: "row", alignItems: "center", gap: espaco.pm },
+  transacaoIcone: { width: 40, height: 40, borderRadius: raios.pilula, backgroundColor: cores.fundo, alignItems: "center", justifyContent: "center" },
+  transacaoNome: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto },
+  transacaoDetalhe: { fontSize: fonte.sm, color: cores.textoSecundario },
+  transacaoValor: { fontSize: fonte.md, fontWeight: peso.medio, color: cores.texto, fontVariant: ["tabular-nums"] },
 });

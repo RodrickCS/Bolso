@@ -6,7 +6,7 @@ import { Variacao } from "../componentes/precos";
 import { Aviso, Campo, Cartao, Opcoes, Vazio } from "../componentes/ui";
 import { api } from "../lib/api";
 import { dataBR, reais, semAcentos, variacao } from "../lib/formato";
-import { cores, espaco } from "../lib/tema";
+import { cores, espaco, fonte, peso, entrelinha } from "../lib/tema";
 
 const ORDENS = [
   { valor: "gasto", rotulo: "Mais comprados" },
@@ -23,7 +23,7 @@ const ORDENAR = {
 function Inflacao({ inflacao }) {
   if (!inflacao) {
     return (
-      <Cartao style={{ gap: 6 }}>
+      <Cartao style={{ gap: espaco.p }}>
         <Text style={estilos.titulo}>Sua inflação pessoal</Text>
         <Text style={estilos.explicacao}>
           Continue enviando fotos de cupons fiscais. Quando pelo menos 3 produtos aparecerem em compras de dias diferentes, o
@@ -33,7 +33,7 @@ function Inflacao({ inflacao }) {
     );
   }
   return (
-    <Cartao style={{ gap: 6 }}>
+    <Cartao style={{ gap: espaco.p }}>
       <Text style={estilos.titulo}>Sua inflação pessoal</Text>
       <Text style={estilos.numero}>{variacao(inflacao.percentual)}</Text>
       <Text style={estilos.explicacao}>
@@ -51,7 +51,7 @@ function LinhaProduto({ produto }) {
       style={({ pressed }) => [estilos.linha, pressed && { opacity: 0.6 }]}
       accessibilityRole="button"
     >
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: espaco.xs }}>
         <Text style={estilos.nome} numberOfLines={1}>{produto.nome}</Text>
         <Text style={estilos.detalhe} numberOfLines={1}>
           {reais(produto.ultimoPreco)} · {produto.compras === 1 ? "1 compra" : `${produto.compras} compras`}
@@ -83,7 +83,7 @@ export default function Produtos() {
     }, []),
   );
 
-  if (!dados && !erro) return <ActivityIndicator style={{ marginTop: 48 }} color={cores.marca} />;
+  if (!dados && !erro) return <ActivityIndicator style={{ marginTop: espaco.ggg }} color={cores.marca} />;
 
   const termo = semAcentos(busca.trim().toLowerCase());
   const lista = (dados?.produtos ?? [])
@@ -99,7 +99,7 @@ export default function Produtos() {
       contentContainerStyle={estilos.conteudo}
       keyboardShouldPersistTaps="handled"
       ListHeaderComponent={
-        <View style={{ gap: 12, marginBottom: 12 }}>
+        <View style={{ gap: espaco.pm, marginBottom: espaco.pm }}>
           <Aviso mensagem={erro} />
           {dados && <Inflacao inflacao={dados.inflacao} />}
           {dados?.produtos.length > 0 && (
@@ -127,13 +127,13 @@ export default function Produtos() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, paddingBottom: 40 },
-  titulo: { fontSize: 15, fontWeight: "700", color: cores.texto },
-  numero: { fontSize: 36, fontWeight: "700", color: cores.texto },
-  explicacao: { fontSize: 14, lineHeight: 20, color: cores.textoSecundario },
-  linha: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
-  nome: { fontSize: 16, color: cores.texto },
-  detalhe: { fontSize: 13, color: cores.textoSecundario, flexShrink: 1 },
-  dica: { flexDirection: "row", alignItems: "center", gap: 4 },
+  conteudo: { padding: espaco.m, paddingBottom: espaco.ggg },
+  titulo: { fontSize: fonte.md, fontWeight: peso.forte, color: cores.texto },
+  numero: { fontSize: fonte.numero, fontWeight: peso.forte, color: cores.texto },
+  explicacao: { fontSize: fonte.sm, lineHeight: entrelinha.sm, color: cores.textoSecundario },
+  linha: { flexDirection: "row", alignItems: "center", gap: espaco.pm, paddingVertical: espaco.pm },
+  nome: { fontSize: fonte.md, color: cores.texto },
+  detalhe: { fontSize: fonte.sm, color: cores.textoSecundario, flexShrink: 1 },
+  dica: { flexDirection: "row", alignItems: "center", gap: espaco.xs },
   separador: { height: 1, backgroundColor: cores.borda },
 });

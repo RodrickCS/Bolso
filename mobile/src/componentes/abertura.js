@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, Text } from "react-native";
 import { Bolso, Moeda } from "./logo";
 import { MARCA } from "../lib/marca";
+import { cores, espaco, fonte, peso } from "../lib/tema";
 
 // Mesmo tamanho da splash nativa (imageWidth 200): a troca da splash nativa para esta tela não dá pulo
 const TAMANHO = 200;
@@ -104,7 +105,7 @@ const estilos = StyleSheet.create({
   },
   logo: { width: TAMANHO, height: TAMANHO },
   camada: { position: "absolute", top: 0, left: 0 },
-  textos: { position: "absolute", top: TAMANHO * 0.86, left: -80, right: -80, alignItems: "center", gap: 4 },
-  nome: { fontSize: 34, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
-  frase: { fontSize: 15, color: "#d4efe2" },
+  textos: { position: "absolute", top: TAMANHO * 0.86, left: -80, right: -80, alignItems: "center", gap: espaco.xs },
+  nome: { fontSize: fonte.numero, fontWeight: peso.forte, color: cores.sobreMarca, letterSpacing: 0.5 },
+  frase: { fontSize: fonte.md, color: cores.sobreMarcaSuave },
 });
