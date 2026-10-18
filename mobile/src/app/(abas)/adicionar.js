@@ -4,12 +4,10 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -18,10 +16,12 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Folha } from "../../componentes/folha";
 import { HistoricoEnvios } from "../../componentes/historico";
 import { Resultado } from "../../componentes/resultado";
-import { Aviso, Cartao, Opcoes } from "../../componentes/ui";
+import { Aviso, Cartao } from "../../componentes/ui";
 import { aguardarDocumento, api } from "../../lib/api";
+import { PELO_TIPO } from "../../lib/contas";
 import { cores, espaco, raio } from "../../lib/tema";
 
 const TIPOS = [
@@ -31,37 +31,6 @@ const TIPOS = [
   { valor: "COMPROVANTE", rotulo: "Pix ou comprovante", detalhe: "Transferência ou pagamento", icone: "swap-horizontal-outline" },
   { valor: "CONTA_CONSUMO", rotulo: "Conta ou boleto", detalhe: "Luz, água, internet, aluguel", icone: "document-text-outline" },
 ];
-
-// Depois de escolher a foto ou o arquivo, pergunta o que ele é (a IA lê melhor sabendo o tipo)
-function EscolherTipo({ visivel, ultimo, aoEscolher, aoCancelar }) {
-  // Sem isso, no Android a folha fica atrás da barra de navegação
-  const baixo = useSafeAreaInsets().bottom;
-  return (
-    <Modal visible={visivel} transparent animationType="slide" onRequestClose={aoCancelar}>
-      <Pressable style={estilos.fundoFolha} onPress={aoCancelar} accessibilityLabel="Cancelar" />
-      <View style={[estilos.folha, { paddingBottom: baixo + espaco.m }]}>
-        <Text style={estilos.folhaTitulo}>O que é este documento?</Text>
-        {TIPOS.map((t) => (
-          <Pressable
-            key={t.valor}
-            onPress={() => aoEscolher(t.valor)}
-            style={({ pressed }) => [estilos.tipo, t.valor === ultimo && estilos.tipoUltimo, pressed && { opacity: 0.6 }]}
-            accessibilityRole="button"
-          >
-            <Ionicons name={t.icone} size={22} color={cores.marca} />
-            <View style={{ flex: 1 }}>
-              <Text style={estilos.tipoRotulo}>{t.rotulo}</Text>
-              <Text style={estilos.tipoDetalhe}>{t.detalhe}</Text>
-            </View>
-          </Pressable>
-        ))}
-        <Pressable onPress={aoCancelar} style={estilos.cancelar} accessibilityRole="button">
-          <Text style={estilos.cancelarTexto}>Cancelar</Text>
-        </Pressable>
-      </View>
-    </Modal>
-  );
-}
 
 // Atalho em grade: ícone, nome curto e uma dica
 function Atalho({ icone, titulo, dica, aoTocar, destaque, desativado }) {
@@ -104,6 +73,7 @@ export default function Adicionar() {
   const [erro, setErro] = useState(null);
   const [contas, setContas] = useState([]);
   const [contaId, setContaId] = useState(null);
+  const [escolhendoConta, setEscolhendoConta] = useState(false);
   const [historico, setHistorico] = useState([]);
 
   const carregarHistorico = useCallback(() => api.documentos().then(setHistorico).catch(() => {}), []);
@@ -158,6 +128,8 @@ export default function Adicionar() {
     }
   }
 
+  const contaEscolhida = contas.find((c) => c.id === contaId);
+
   function enviarTexto() {
     if (!texto.trim()) return;
     acompanhar(async () => {
@@ -209,43 +181,54 @@ export default function Adicionar() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
-        <View style={estilos.campoTexto}>
+        {/* Caixa de lançamento: texto, conta usada, lançamento à mão e enviar, tudo junto */}
+        <View style={estilos.caixa}>
           <TextInput
             style={estilos.entrada}
-            placeholder="Ex: gastei 35 no uber ontem"
+            placeholder={"O que você gastou?\nEx: 35 no uber ontem"}
             placeholderTextColor={cores.textoSuave}
             value={texto}
             onChangeText={setTexto}
             onSubmitEditing={enviarTexto}
+            submitBehavior="submit"
             returnKeyType="send"
+            multiline
             editable={!lendo}
-            accessibilityLabel="Digite um gasto"
+            accessibilityLabel="O que você gastou?"
           />
-          <Pressable
-            onPress={enviarTexto}
-            disabled={lendo || !texto.trim()}
-            style={[estilos.enviar, (lendo || !texto.trim()) && { opacity: 0.4 }]}
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar gasto"
-          >
-            <Ionicons name="arrow-up" size={20} color="#fff" />
-          </Pressable>
-        </View>
-        <Pressable onPress={() => router.push("/lancamento")} hitSlop={8} accessibilityRole="button" style={estilos.manual}>
-          <Ionicons name="create-outline" size={16} color={cores.marca} />
-          <Text style={estilos.manualTexto}>Preencher à mão, sem IA</Text>
-        </Pressable>
-
-        {contas.length > 0 && (
-          <View style={{ gap: 6 }}>
-            <Text style={estilos.rotulo}>Pagou com</Text>
-            <Opcoes
-              opcoes={[{ valor: null, rotulo: "Não informar" }, ...contas.map((c) => ({ valor: c.id, rotulo: c.nome }))]}
-              valor={contaId}
-              aoMudar={setContaId}
-            />
+          <View style={estilos.barraCaixa}>
+            {contas.length > 0 && (
+              <Pressable
+                onPress={() => setEscolhendoConta(true)}
+                style={({ pressed }) => [estilos.pilula, pressed && { opacity: 0.6 }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Pagou com: ${contaEscolhida?.nome ?? "não informado"}`}
+              >
+                <Ionicons name={PELO_TIPO[contaEscolhida?.tipo]?.icone ?? "wallet-outline"} size={15} color={cores.textoSecundario} />
+                <Text style={estilos.pilulaTexto} numberOfLines={1}>{contaEscolhida?.nome ?? "Pagou com"}</Text>
+                <Ionicons name="chevron-down" size={14} color={cores.textoSecundario} />
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => router.push("/lancamento")}
+              style={({ pressed }) => [estilos.pilula, pressed && { opacity: 0.6 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Preencher à mão, sem IA"
+            >
+              <Ionicons name="create-outline" size={15} color={cores.textoSecundario} />
+              <Text style={estilos.pilulaTexto}>À mão</Text>
+            </Pressable>
+            <Pressable
+              onPress={enviarTexto}
+              disabled={lendo || !texto.trim()}
+              style={[estilos.enviar, (lendo || !texto.trim()) && estilos.enviarDesligado]}
+              accessibilityRole="button"
+              accessibilityLabel="Adicionar gasto"
+            >
+              <Ionicons name="arrow-up" size={18} color="#fff" />
+            </Pressable>
           </View>
-        )}
+        </View>
 
         <Text style={estilos.rotulo}>Ou envie um documento</Text>
         <View style={estilos.grade}>
@@ -271,11 +254,27 @@ export default function Adicionar() {
         <Aviso mensagem={erro} />
         {documento && <Resultado documento={documento} aoNaoRepetir={naoRepetir} />}
 
-        <EscolherTipo
+        <Folha
           visivel={Boolean(aguardandoTipo)}
-          ultimo={ultimoTipo}
+          titulo="O que é este documento?"
+          opcoes={TIPOS}
+          selecionado={ultimoTipo}
           aoEscolher={escolherTipo}
           aoCancelar={() => setAguardandoTipo(null)}
+        />
+        <Folha
+          visivel={escolhendoConta}
+          titulo="Pagou com"
+          opcoes={[
+            { valor: null, rotulo: "Não informar", icone: "remove-circle-outline" },
+            ...contas.map((c) => ({ valor: c.id, rotulo: c.nome, detalhe: PELO_TIPO[c.tipo]?.rotulo, icone: PELO_TIPO[c.tipo]?.icone ?? "wallet-outline" })),
+          ]}
+          selecionado={contaId}
+          aoEscolher={(id) => {
+            setContaId(id);
+            setEscolhendoConta(false);
+          }}
+          aoCancelar={() => setEscolhendoConta(false)}
         />
 
         <HistoricoEnvios
@@ -291,22 +290,37 @@ export default function Adicionar() {
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: 12, paddingBottom: 40 },
   rotulo: { fontSize: 14, fontWeight: "600", color: cores.textoSecundario, marginTop: espaco.p },
-  campoTexto: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: espaco.p,
-    minHeight: 52,
-    paddingLeft: espaco.m,
-    paddingRight: 6,
-    borderRadius: raio,
+  caixa: {
+    borderRadius: raio + 4,
     borderWidth: 1,
     borderColor: cores.borda,
     backgroundColor: cores.superficie,
+    padding: 12,
+    gap: 10,
   },
-  entrada: { flex: 1, fontSize: 16, color: cores.texto, paddingVertical: 12 },
-  enviar: { width: 40, height: 40, borderRadius: 20, backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
-  manual: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
-  manualTexto: { fontSize: 14, fontWeight: "600", color: cores.marca },
+  entrada: { minHeight: 52, maxHeight: 120, fontSize: 16, lineHeight: 22, color: cores.texto, textAlignVertical: "top", padding: 0 },
+  barraCaixa: { flexDirection: "row", alignItems: "center", gap: espaco.p },
+  pilula: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    backgroundColor: cores.fundo,
+    maxWidth: 160,
+  },
+  pilulaTexto: { fontSize: 13, fontWeight: "600", color: cores.textoSecundario, flexShrink: 1 },
+  enviar: {
+    marginLeft: "auto",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: cores.marca,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  enviarDesligado: { backgroundColor: cores.textoSuave, opacity: 0.35 },
   grade: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   atalho: {
     flexBasis: "47%",
@@ -323,19 +337,4 @@ const estilos = StyleSheet.create({
   atalhoDica: { fontSize: 12, color: cores.textoSecundario },
   lendo: { flexDirection: "row", alignItems: "center", gap: 12 },
   lendoTexto: { flex: 1, color: cores.textoSecundario },
-  fundoFolha: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
-  folha: {
-    backgroundColor: cores.superficie,
-    borderTopLeftRadius: raio * 2,
-    borderTopRightRadius: raio * 2,
-    padding: espaco.m,
-    gap: 4,
-  },
-  folhaTitulo: { fontSize: 17, fontWeight: "700", color: cores.texto, marginBottom: espaco.p },
-  tipo: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 10, paddingHorizontal: espaco.p, borderRadius: raio },
-  tipoUltimo: { backgroundColor: cores.marcaSuave },
-  tipoRotulo: { fontSize: 15, fontWeight: "600", color: cores.texto },
-  tipoDetalhe: { fontSize: 13, color: cores.textoSecundario },
-  cancelar: { alignItems: "center", paddingVertical: 12, marginTop: espaco.p },
-  cancelarTexto: { fontSize: 15, fontWeight: "600", color: cores.textoSecundario },
 });
