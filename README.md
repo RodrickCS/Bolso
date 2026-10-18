@@ -90,13 +90,12 @@ No plano grátis o Render "dorme" depois de 15 minutos sem acesso e leva cerca d
 
 O APK é gerado na nuvem pelo [EAS Build](https://docs.expo.dev/build/setup/), sem precisar de Android Studio.
 
-1. Confira em `mobile/eas.json` se `EXPO_PUBLIC_API_URL` aponta para a URL da sua API no Render. O `.env` local não vai para o build na nuvem.
-2. Na pasta `mobile`:
+1. Na pasta `mobile`:
    ```bash
    npx eas-cli@latest login
    npx eas-cli@latest build --platform android --profile apk
    ```
-3. No fim, o terminal mostra um link e um QR code. Abra no celular, baixe o `.apk` e instale.
+2. No fim, o terminal mostra um link e um QR code. Abra no celular, baixe o `.apk` e instale.
 
 ## Custos da IA
 
