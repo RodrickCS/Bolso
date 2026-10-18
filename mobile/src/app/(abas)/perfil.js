@@ -1,29 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { File, Paths } from "expo-file-system";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar, Aviso, Botao, Campo, Cartao } from "../../componentes/ui";
 import { api } from "../../lib/api";
-import { dolares, mesAtual, nomeDoMes } from "../../lib/formato";
 import { useSessao } from "../../lib/sessao";
 import { cores, espaco, raios, fonte, peso, entrelinha } from "../../lib/tema";
-
-const ROTULO_TAREFA = {
-  "extrair:CUPOM": "Cupons",
-  "extrair:FATURA": "Faturas",
-  "extrair:EXTRATO": "Extratos",
-  "extrair:COMPROVANTE": "Comprovantes",
-  "extrair:CONTA_CONSUMO": "Contas",
-  "extrair:TEXTO": "Gastos por texto",
-  categorizar: "Categorização",
-  assistente: "Assistente",
-  pergunta: "Pergunte ao Bolso",
-  conversa: "Assistente do chat",
-  "conversa:ferramentas": "Assistente do chat (ações)",
-  nfce: "Cupons por QR Code",
-};
 
 function ItemMenu({ icone, titulo, aoTocar, perigo }) {
   return (
@@ -73,17 +57,9 @@ function ExcluirConta({ visivel, aoFechar, aoExcluir }) {
 
 export default function Perfil() {
   const { usuario, sair } = useSessao();
-  const [uso, setUso] = useState(null);
   const [erro, setErro] = useState(null);
   const [exportando, setExportando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
-  const mes = mesAtual();
-
-  useFocusEffect(
-    useCallback(() => {
-      api.usoIa(mes).then(setUso).catch((e) => setErro(e.message));
-    }, [mes]),
-  );
 
   // Gera a planilha no celular e abre o "compartilhar" (salvar no Drive, mandar por e-mail...)
   async function exportar() {
@@ -125,22 +101,6 @@ export default function Perfil() {
         <ItemMenu icone="pricetags-outline" titulo="Preços dos produtos" aoTocar={() => router.push("/produtos")} />
       </Cartao>
 
-      <Text style={estilos.secao}>Uso da IA em {nomeDoMes(mes).toLowerCase()}</Text>
-      {uso && (
-        <Cartao style={{ gap: espaco.p }}>
-          <Text style={estilos.custo}>{dolares(uso.custoUsd)}</Text>
-          <Text style={estilos.legenda}>usados dos seus créditos da API do Claude</Text>
-          {uso.porTarefa.map((t) => (
-            <View key={t.tarefa} style={estilos.linha}>
-              <Text style={estilos.linhaTexto}>
-                {ROTULO_TAREFA[t.tarefa] ?? t.tarefa} ({t.chamadas})
-              </Text>
-              <Text style={estilos.linhaValor}>{dolares(t.custoUsd)}</Text>
-            </View>
-          ))}
-        </Cartao>
-      )}
-
       <Text style={estilos.secao}>Seus dados</Text>
       <Aviso mensagem={erro} />
       <Cartao style={{ paddingVertical: espaco.xs }}>
@@ -169,11 +129,6 @@ const estilos = StyleSheet.create({
   secao: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto, marginTop: espaco.p },
   item: { flexDirection: "row", alignItems: "center", gap: espaco.pm, minHeight: 52 },
   itemTexto: { flex: 1, fontSize: fonte.md, color: cores.texto },
-  custo: { fontSize: fonte.xxl, fontWeight: peso.forte, color: cores.texto },
-  legenda: { fontSize: fonte.sm, color: cores.textoSecundario, marginTop: -6 },
-  linha: { flexDirection: "row", justifyContent: "space-between" },
-  linhaTexto: { fontSize: fonte.md, color: cores.texto },
-  linhaValor: { fontSize: fonte.md, color: cores.texto, fontVariant: ["tabular-nums"] },
   fundoModal: { flex: 1, backgroundColor: cores.veu, justifyContent: "center", padding: espaco.m },
   modal: { backgroundColor: cores.superficie, borderRadius: raios.m, padding: espaco.m, gap: espaco.pm },
   modalTitulo: { fontSize: fonte.lg, fontWeight: peso.forte, color: cores.texto },

@@ -31,7 +31,7 @@ Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do c
 - **Gastos fixos que se repetem sozinhos:** ao ler um texto, comprovante ou boleto, a IA já diz se é um gasto fixo mensal (assinatura, aluguel, mensalidade), sem chamada extra. No dia do vencimento, o Bolso lança o gasto sozinho; quando a fatura chega, a cobrança real substitui o automático, mesmo com reajuste. Dá para desfazer ("Não repetir"), pausar e editar valor e dia. A previsão do fim do mês soma os fixos que ainda vão cair.
 - **Orçamentos por categoria** com medidor e alerta a partir de 80%.
 - **Cobranças recorrentes detectadas** (assinaturas, aluguel...), avisando quando uma parou de cobrar.
-- **Custo da IA sob controle:** cada chamada à API do Claude é registrada, e o app mostra quanto dos créditos já foi usado no mês.
+- **Custo da IA sob controle:** cada chamada à API do Claude é registrada no servidor (tabela UsoIa, e a rota `GET /uso-ia?mes=AAAA-MM` soma por tarefa). O app não mostra isso ao usuário.
 - **Inflação pessoal e preços:** cada item dos cupons vira um produto com histórico de preço. O Bolso mostra quanto cada um subiu desde a primeira compra, em qual mercado ele sai mais barato e um índice da sua inflação pessoal (a média das variações, com mais peso para o que você mais compra). Tudo calculado em código, sem gastar IA. Se a IA der dois nomes ao mesmo produto, dá para renomear ou juntar.
 - **Contas e cartões:** cada lançamento pode ser ligado a um cartão ou conta, e o painel mostra quanto saiu de cada um no mês.
 - **Edição completa e lançamento manual:** corrija valor, data, descrição, categoria e conta, ou lance um gasto à mão, sem IA.

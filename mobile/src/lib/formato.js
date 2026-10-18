@@ -6,8 +6,6 @@ const MESES = [
 export const reais = (valor) =>
   Number(valor ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export const dolares = (valor) => `US$ ${Number(valor ?? 0).toFixed(2).replace(".", ",")}`;
-
 export function mesAtual() {
   const hoje = new Date();
   return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;

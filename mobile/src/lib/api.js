@@ -51,7 +51,6 @@ export const api = {
     requisicao("/auth/registrar", { metodo: "POST", corpo: { nome, email, senha } }),
 
   painel: (mes) => requisicao(`/painel?mes=${mes}`),
-  usoIa: (mes) => requisicao(`/uso-ia?mes=${mes}`),
   categorias: () => requisicao("/categorias"),
   assistente: (mes) => requisicao(`/assistente?mes=${mes}`),
   assinaturas: (mes) => requisicao(`/assinaturas?mes=${mes}`),
