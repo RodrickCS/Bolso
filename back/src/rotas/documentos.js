@@ -217,7 +217,10 @@ rotasDocumentos.get(
       where: { id: Number(req.params.id) || 0, usuarioId: req.usuarioId },
       select: {
         ...camposDocumento,
-        transacoes: { include: { categoria: true, itens: true }, orderBy: { data: "desc" } },
+        transacoes: {
+          include: { categoria: true, itens: true, recorrencia: { select: { id: true, ativa: true, dia: true } } },
+          orderBy: { data: "desc" },
+        },
       },
     });
     if (!documento) throw new ErroHttp(404, "Documento não encontrado");

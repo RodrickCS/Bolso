@@ -20,6 +20,7 @@ function Rotas() {
         <Stack.Screen name="produto" options={{ ...comCabecalho, title: "Produto" }} />
         <Stack.Screen name="qrcode" options={{ ...comCabecalho, title: "Ler QR Code do cupom" }} />
         <Stack.Screen name="perguntar" options={{ ...comCabecalho, title: "Pergunte ao Bolso" }} />
+        <Stack.Screen name="fixos" options={{ ...comCabecalho, title: "Gastos fixos" }} />
       </Stack.Protected>
       <Stack.Protected guard={!logado}>
         <Stack.Screen name="entrar" />

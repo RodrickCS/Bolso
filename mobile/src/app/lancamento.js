@@ -13,6 +13,14 @@ const TIPOS = [
   { valor: "RECEITA", rotulo: "Entrada" },
 ];
 
+// Ao criar, "Automático" deixa a IA (ou a categoria Assinaturas) decidir se é um gasto fixo
+const REPETIR_NOVO = [
+  { valor: null, rotulo: "Automático" },
+  { valor: true, rotulo: "Sim" },
+  { valor: false, rotulo: "Não" },
+];
+const REPETIR_EDICAO = REPETIR_NOVO.slice(1);
+
 // Cria um lançamento à mão (sem IA) ou edita um existente (/lancamento?id=123)
 export default function Lancamento() {
   const { id } = useLocalSearchParams();
@@ -28,6 +36,7 @@ export default function Lancamento() {
   const [data, setData] = useState(dataBR(hojeISO()));
   const [categoriaId, setCategoriaId] = useState(null);
   const [contaId, setContaId] = useState(null);
+  const [repetir, setRepetir] = useState(null);
   const [erro, setErro] = useState(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -44,6 +53,7 @@ export default function Lancamento() {
           setData(dataBR(transacao.data));
           setCategoriaId(transacao.categoria?.id ?? null);
           setContaId(transacao.conta?.id ?? null);
+          setRepetir(Boolean(transacao.recorrencia?.ativa));
         }
       })
       .catch((e) => setErro(e.message))
@@ -67,9 +77,18 @@ export default function Lancamento() {
     const dados = { tipo, valor: valorNumero, descricao: descricao.trim(), data: dataISO, contaId };
     setSalvando(true);
     try {
-      if (editando) await api.editarTransacao(id, { ...dados, categoriaId });
-      // Sem categoria escolhida, o Bolso usa a memória ou sugere uma
-      else await api.criarTransacao({ ...dados, contaId: contaId ?? undefined, categoriaId: categoriaId ?? undefined });
+      if (editando) {
+        await api.editarTransacao(id, { ...dados, categoriaId });
+        if (tipo === "DESPESA" && repetir !== Boolean(original.recorrencia?.ativa)) await api.repetirTransacao(id, repetir);
+      } else {
+        // Sem categoria escolhida, o Bolso usa a memória ou sugere uma; sem "repetir", decide se é gasto fixo
+        await api.criarTransacao({
+          ...dados,
+          contaId: contaId ?? undefined,
+          categoriaId: categoriaId ?? undefined,
+          repetir: tipo === "DESPESA" ? (repetir ?? undefined) : false,
+        });
+      }
       router.back();
     } catch (e) {
       setErro(e.message);
@@ -111,7 +130,19 @@ export default function Lancamento() {
           {original?.conciliadaComId && (
             <View style={estilos.nota}>
               <Ionicons name="link-outline" size={16} color={cores.textoSecundario} />
-              <Text style={estilos.notaTexto}>Este gasto também veio na fatura e já é contado por lá.</Text>
+              <Text style={estilos.notaTexto}>
+                {original.origem === "RECORRENTE"
+                  ? "Lançado automaticamente pelo gasto fixo. A cobrança real já chegou e é ela que conta."
+                  : "Este gasto também veio na fatura e já é contado por lá."}
+              </Text>
+            </View>
+          )}
+          {original?.origem === "RECORRENTE" && !original.conciliadaComId && (
+            <View style={estilos.nota}>
+              <Ionicons name="repeat" size={16} color={cores.textoSecundario} />
+              <Text style={estilos.notaTexto}>
+                Lançado automaticamente pelo gasto fixo. Quando a fatura chegar, a cobrança real substitui este.
+              </Text>
             </View>
           )}
 
@@ -134,6 +165,20 @@ export default function Lancamento() {
 
           <Rotulo>Conta ou cartão</Rotulo>
           <Opcoes opcoes={opcoesConta} valor={contaId} aoMudar={setContaId} />
+
+          {tipo === "DESPESA" && (
+            <>
+              <Rotulo>Repetir todo mês</Rotulo>
+              <Opcoes opcoes={editando ? REPETIR_EDICAO : REPETIR_NOVO} valor={repetir} aoMudar={setRepetir} />
+              <Text style={estilos.dica}>
+                {repetir === null
+                  ? "O Bolso marca sozinho se for assinatura, aluguel ou mensalidade."
+                  : repetir
+                    ? "Todo mês, no mesmo dia, o Bolso lança este gasto sozinho."
+                    : "Fica só neste mês."}
+              </Text>
+            </>
+          )}
 
           {original?.itens?.length > 0 && (
             <>

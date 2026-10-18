@@ -69,6 +69,15 @@ export default function Adicionar() {
     }
   }
 
+  async function naoRepetir(transacao) {
+    try {
+      await api.repetirTransacao(transacao.id, false);
+      setDocumento(await api.documento(documento.id));
+    } catch (e) {
+      setErro(e.message);
+    }
+  }
+
   async function acompanhar(envio) {
     setErro(null);
     setDocumento(null);
@@ -183,7 +192,7 @@ export default function Adicionar() {
           </Cartao>
         )}
         <Aviso mensagem={erro} />
-        {documento && <Resultado documento={documento} />}
+        {documento && <Resultado documento={documento} aoNaoRepetir={naoRepetir} />}
 
         <HistoricoEnvios
           documentos={historico}

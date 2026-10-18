@@ -19,6 +19,8 @@ const ROTULO_TAREFA = {
   "extrair:TEXTO": "Gastos por texto",
   categorizar: "Categorização",
   assistente: "Assistente",
+  pergunta: "Pergunte ao Bolso",
+  nfce: "Cupons por QR Code",
 };
 
 function ItemMenu({ icone, titulo, aoTocar, perigo }) {
@@ -113,6 +115,7 @@ export default function Perfil() {
 
       <Cartao style={{ paddingVertical: 4 }}>
         <ItemMenu icone="card-outline" titulo="Contas e cartões" aoTocar={() => router.push("/contas")} />
+        <ItemMenu icone="repeat" titulo="Gastos fixos" aoTocar={() => router.push("/fixos")} />
         <ItemMenu icone="pie-chart-outline" titulo="Orçamentos" aoTocar={() => router.push("/orcamentos")} />
         <ItemMenu icone="pricetags-outline" titulo="Preços dos produtos" aoTocar={() => router.push("/produtos")} />
       </Cartao>

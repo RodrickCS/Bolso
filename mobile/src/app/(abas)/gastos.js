@@ -15,6 +15,7 @@ const ROTULO_ORIGEM = {
   EXTRATO: "Extrato",
   COMPROVANTE: "Comprovante",
   CONTA_CONSUMO: "Conta",
+  RECORRENTE: "Gasto fixo",
 };
 
 function ItemGasto({ transacao, aoTocar, aoSegurar }) {
@@ -34,10 +35,18 @@ function ItemGasto({ transacao, aoTocar, aoSegurar }) {
         <Text style={estilos.detalhes}>{detalhes.join(" · ")}</Text>
         <View style={estilos.etiquetas}>
           <Text style={estilos.categoria}>{transacao.categoria?.nome ?? "Sem categoria"}</Text>
+          {transacao.recorrencia?.ativa && !transacao.conciliadaComId && (
+            <View style={estilos.conciliada}>
+              <Ionicons name="repeat" size={12} color={cores.textoSecundario} />
+              <Text style={estilos.conciliadaTexto}>todo mês</Text>
+            </View>
+          )}
           {transacao.conciliadaComId && (
             <View style={estilos.conciliada}>
               <Ionicons name="link-outline" size={12} color={cores.textoSecundario} />
-              <Text style={estilos.conciliadaTexto}>já contado na fatura</Text>
+              <Text style={estilos.conciliadaTexto}>
+                {transacao.origem === "RECORRENTE" ? "trocado pela cobrança real" : "já contado na fatura"}
+              </Text>
             </View>
           )}
         </View>

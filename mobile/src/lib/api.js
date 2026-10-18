@@ -69,6 +69,10 @@ export const api = {
   transacao: (id) => requisicao(`/transacoes/${id}`),
   criarTransacao: (dados) => requisicao("/transacoes", { metodo: "POST", corpo: dados }),
   editarTransacao: (id, dados) => requisicao(`/transacoes/${id}`, { metodo: "PATCH", corpo: dados }),
+  repetirTransacao: (id, repetir) => requisicao(`/transacoes/${id}/repetir`, { metodo: "POST", corpo: { repetir } }),
+  recorrencias: () => requisicao("/recorrencias"),
+  editarRecorrencia: (id, dados) => requisicao(`/recorrencias/${id}`, { metodo: "PATCH", corpo: dados }),
+  apagarRecorrencia: (id) => requisicao(`/recorrencias/${id}`, { metodo: "DELETE" }),
   apagarTransacao: (id) => requisicao(`/transacoes/${id}`, { metodo: "DELETE" }),
 
   documentos: () => requisicao("/documentos"),
