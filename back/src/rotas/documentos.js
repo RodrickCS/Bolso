@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
@@ -21,6 +22,27 @@ function tipoPadrao(mimeType) {
 function conteudoBase64(arquivo) {
   const conteudo = Buffer.from(arquivo.base64, "base64");
   return { conteudo, mimeType: detectarFormato(conteudo, arquivo.mimeType, arquivo.nome) };
+}
+
+// O mesmo arquivo de novo é recusado antes de ir para a IA, sem gastar créditos.
+// Envio que deu erro não conta (dá para tentar de novo), e apagar o envio libera o arquivo.
+async function recusarRepetido(usuarioId, hashConteudo) {
+  const anterior = await prisma.documento.findFirst({
+    where: { usuarioId, hashConteudo, status: { not: "ERRO" } },
+    orderBy: { criadoEm: "desc" },
+  });
+  if (!anterior) return;
+  const quando = anterior.criadoEm.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  throw new ErroHttp(
+    409,
+    `Você já enviou esse arquivo em ${quando.replace(", ", " às ")}. Ele não foi lido de novo, para não gastar créditos da IA. Se quiser ler outra vez, apague o envio anterior no histórico.`,
+  );
 }
 
 const envio = z.object({
@@ -59,7 +81,9 @@ rotasDocumentos.post(
       if (!IMAGENS.has(mimeType) && !TEXTOS.has(mimeType) && mimeType !== "application/pdf") {
         throw new ErroHttp(415, "Formato não suportado. Envie foto (JPG/PNG), PDF, CSV ou OFX.");
       }
-      documento = { tipo: dados.tipo ?? tipoPadrao(mimeType), mimeType, conteudo };
+      const hashConteudo = createHash("sha256").update(conteudo).digest("hex");
+      await recusarRepetido(req.usuarioId, hashConteudo);
+      documento = { tipo: dados.tipo ?? tipoPadrao(mimeType), mimeType, conteudo, hashConteudo };
     } else if (dados.texto) {
       documento = { tipo: "TEXTO", texto: dados.texto };
     } else {

@@ -97,6 +97,8 @@ model Documento {
   status       StatusDocumento @default(PENDENTE)
   mimeType     String?
   conteudo     Bytes?
+  // SHA-256 do arquivo: continua aqui depois que o conteúdo é apagado, para reconhecer o mesmo arquivo enviado de novo
+  hashConteudo String?
   texto        String?
   observacao   String?
   erro         String?
@@ -109,7 +111,7 @@ model Documento {
   transacoes   Transacao[]
 
   @@index([status, criadoEm])
-  @@index([usuarioId])
+  @@index([usuarioId, hashConteudo])
 }
 
 model Transacao {

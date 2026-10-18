@@ -71,10 +71,22 @@ test("fluxo completo: texto, cupom, fatura, conciliação e painel", opcoes, asy
   assert.equal(painel.despesas, 247.35);
   assert.equal(painel.porCategoria.find((c) => c.categoria === "Mercado").total, 87.4);
 
-  // A mesma fatura enviada de novo não duplica nada
-  await chamar(token, "POST", "/documentos", arquivo("%PDF-1.4", "application/pdf", "fatura-de-novo.pdf"));
+  // O mesmo arquivo de novo é recusado antes de chegar na IA
+  const repetido = await chamar(token, "POST", "/documentos", arquivo("%PDF-1.4", "application/pdf", "fatura-copia.pdf"));
+  assert.equal(repetido.status, 409);
+  assert.match(repetido.corpo.erro, /^Você já enviou esse arquivo em \d{2}\/\d{2} às \d{2}:\d{2}\./);
+  assert.equal((await chamar(token, "GET", "/documentos")).corpo.length, 3);
+
+  // Outro arquivo com as mesmas linhas (ex.: fatura baixada de novo) passa, mas não duplica nada
+  await chamar(token, "POST", "/documentos", arquivo("%PDF-1.4 baixada de novo", "application/pdf", "fatura-de-novo.pdf"));
   await processarPendentes();
   assert.equal((await chamar(token, "GET", "/transacoes")).corpo.length, transacoes.length);
+
+  // Apagar o envio libera o arquivo para ser lido de novo
+  const [ultimo] = (await chamar(token, "GET", "/documentos")).corpo;
+  assert.equal((await chamar(token, "DELETE", `/documentos/${ultimo.id}`)).status, 204);
+  assert.equal((await chamar(token, "POST", "/documentos", arquivo("%PDF-1.4 baixada de novo", "application/pdf", "f.pdf"))).status, 202);
+  await processarPendentes();
 });
 
 test("aceita arquivo em base64 no JSON, como o app envia", opcoes, async () => {

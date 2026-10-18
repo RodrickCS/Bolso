@@ -13,7 +13,7 @@ Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do c
 - **Lê qualquer comprovante de gasto:** cupom fiscal (foto, item por item), fatura de cartão em PDF (inclusive parcelas "3/10"), extrato CSV/OFX, print de Pix e contas de consumo.
 - **Gasto por texto:** frases simples são entendidas no próprio servidor, sem gastar créditos da IA; as mais complexas vão para a IA.
 - **Memória de categorias:** quando você corrige a categoria de um lugar, o Bolso lembra e nunca mais pergunta.
-- **Conciliação:** o mesmo gasto que chega pelo cupom e pela fatura é contado uma vez só. A fatura vale como valor oficial e o cupom guarda os itens. Fatura reenviada não duplica nada.
+- **Conciliação:** o mesmo gasto que chega pelo cupom e pela fatura é contado uma vez só. A fatura vale como valor oficial e o cupom guarda os itens. O mesmo arquivo enviado de novo é recusado antes de chegar na IA, sem gastar créditos; e uma fatura ou extrato baixado de novo, com linhas repetidas, não duplica nada.
 - **Painel do mês** com gastos por categoria, entradas e saldo.
 - **Assistente do mês:** compara com o mês anterior, prevê o fechamento, aponta gastos fora do padrão e orçamentos estourando. As contas são feitas em código; a IA (Haiku) só escreve as dicas, no máximo uma vez por dia, por menos de US$ 0,001 cada. Sem IA, o cartão mostra os mesmos fatos em texto pronto.
 - **Orçamentos por categoria** com medidor e alerta a partir de 80%.
