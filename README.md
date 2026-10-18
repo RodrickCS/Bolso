@@ -11,6 +11,7 @@ Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do c
 ## O que ele faz
 
 - **Lê qualquer comprovante de gasto:** cupom fiscal (foto, item por item), fatura de cartão em PDF (inclusive parcelas "3/10"), extrato CSV/OFX, print de Pix e contas de consumo.
+- **Cupom fiscal pelo QR Code (NFC-e):** aponte a câmera para o QR Code do cupom e o Bolso busca a nota no site da SEFAZ: loja, data, total com desconto e cada item, com dados oficiais. O próprio código lê a página; a IA (Haiku) só dá nome padronizado aos itens nunca vistos e escolhe a categoria de uma loja nova, por cerca de US$ 0,0001. Itens e lojas já conhecidos não chamam a IA. A mesma nota lida duas vezes é recusada.
 - **Gasto por texto:** frases simples são entendidas no próprio servidor, sem gastar créditos da IA; as mais complexas vão para a IA.
 - **Memória de categorias:** quando você corrige a categoria de um lugar, o Bolso lembra e nunca mais pergunta.
 - **Conciliação:** o mesmo gasto que chega pelo cupom e pela fatura é contado uma vez só. A fatura vale como valor oficial e o cupom guarda os itens. O mesmo arquivo enviado de novo é recusado antes de chegar na IA, sem gastar créditos; e uma fatura ou extrato baixado de novo, com linhas repetidas, não duplica nada.
@@ -103,6 +104,8 @@ O APK é gerado na nuvem pelo [EAS Build](https://docs.expo.dev/build/setup/), s
 | `IA_MODELO_RAPIDO` | `claude-opus-5-5` | Gastos por texto e categorização. Para economizar: `claude-haiku-5-5` |
 
 O que já está no código para gastar pouco:
+- Cupons pelo QR Code: os itens vêm da SEFAZ e são lidos pelo código, sem a IA olhar foto.
+- O mesmo arquivo (ou a mesma NFC-e) enviado de novo é recusado antes de chegar na IA.
 - Fotos reduzidas para 1000 px no próprio celular antes do envio.
 - Frases simples de lugares conhecidos não chamam a IA.
 - Memória de categorias: um lançamento manual de um lugar já visto não chama a IA.
@@ -131,7 +134,7 @@ mobile/
 
 ## Próximos passos
 
-- [ ] Ler o QR Code da NFC-e direto da SEFAZ (dados oficiais e grátis) e usar a IA só para categorizar
+- [x] Ler o QR Code da NFC-e direto da SEFAZ (dados oficiais) e usar a IA só para nomear itens novos e categorizar
 - [x] Orçamentos por categoria com alertas
 - [x] Detectar assinaturas e gastos recorrentes
 - [x] Previsão do fim do mês (no assistente)

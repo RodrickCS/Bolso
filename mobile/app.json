@@ -33,7 +33,15 @@
           "photosPermission": "O Bolso acessa suas fotos para ler cupons e comprovantes salvos."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Bolso usa a câmera para ler o QR Code dos cupons fiscais.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "scheme": "bolso"
   }

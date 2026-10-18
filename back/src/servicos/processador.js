@@ -4,6 +4,7 @@ import { extrairTransacoes } from "../ia/extrair.js";
 import { prisma } from "../lib/prisma.js";
 import { categoriaLembrada } from "./categorias.js";
 import { salvarExtracao } from "./importacao.js";
+import { documentoParaIa, ehNfce, extracaoNfce } from "./nfce.js";
 import { interpretarTextoLocal } from "./texto.js";
 
 // Fila simples usando a própria tabela Documento: sem Redis, cabe no plano grátis.
@@ -41,7 +42,7 @@ async function extracaoSemIa(documento) {
 
 export async function processarDocumento(documento) {
   try {
-    let extracao = await extracaoSemIa(documento);
+    let extracao = ehNfce(documento) ? await extracaoNfce(documento) : await extracaoSemIa(documento);
     if (!extracao) {
       const categorias = await prisma.categoria.findMany({ where: { usuarioId: documento.usuarioId } });
       // Em cupons, a IA reaproveita os nomes de produtos já vistos, para o histórico de preços juntar as compras
@@ -49,7 +50,7 @@ export async function processarDocumento(documento) {
         documento.tipo === "CUPOM"
           ? await prisma.produto.findMany({ where: { usuarioId: documento.usuarioId }, orderBy: { id: "desc" }, take: 150 })
           : [];
-      extracao = await extrairTransacoes(documento, categorias.map((c) => c.nome), produtos.map((p) => p.nomeCanonico));
+      extracao = await extrairTransacoes(documentoParaIa(documento), categorias.map((c) => c.nome), produtos.map((p) => p.nomeCanonico));
     }
     await salvarExtracao(documento, extracao);
     await prisma.documento.update({

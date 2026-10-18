@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectarFormato } from "../src/lib/formatos.js";
-import { textoDoArquivo } from "../src/ia/extrair.js";
+import { detectarFormato, textoDoArquivo } from "../src/lib/formatos.js";
 
 const csv = Buffer.from("Data;Descrição;Valor\n01/10/2026;UBER *TRIP;-23,15\n02/10/2026;PIX RECEBIDO;150,00\n");
 const ofx = Buffer.from("OFXHEADER:100\nDATA:OFXSGML\n<OFX><BANKMSGSRSV1><STMTTRN><TRNAMT>-23.15</TRNAMT></STMTTRN></BANKMSGSRSV1></OFX>");

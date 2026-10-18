@@ -322,3 +322,58 @@ test("preços dos produtos: histórico, mercado mais barato, renomear, juntar e 
   assert.equal((await chamar(outro, "POST", `/produtos/${cafe.id}/juntar`, { produtoId: cafe.id + 1 })).status, 404);
   assert.deepEqual((await chamar(outro, "GET", "/produtos")).corpo, { inflacao: null, produtos: [] });
 });
+
+test("cupom pelo QR Code da NFC-e: itens da SEFAZ, sem repetir, memória de produtos e categoria", opcoes, async () => {
+  const { gerarChave, qrcodeDe, paginaNfce } = await import("./fixtures/nfce.js");
+  const token = await cadastrar("nfce@teste.com");
+  const pagina = (html) => ({ base64: Buffer.from(html, "latin1").toString("base64"), tipo: "text/html; charset=ISO-8859-1" });
+  const enviar = (corpo) => chamar(token, "POST", "/documentos/nfce", corpo);
+
+  // QR que não é de NFC-e, e QR com a chave certa mas fora de um site do governo
+  assert.equal((await enviar({ qrcode: "https://pix.exemplo.com/abc" })).status, 400);
+  assert.equal((await enviar({ qrcode: `https://exemplo.com/?p=${gerarChave(1)}|2|1` })).status, 400);
+
+  const primeira = await enviar({ qrcode: qrcodeDe(gerarChave(1)), pagina: pagina(paginaNfce({ data: "02/10/2026" })) });
+  assert.equal(primeira.status, 202);
+  await processarPendentes();
+  const lida = (await chamar(token, "GET", `/documentos/${primeira.corpo.id}`)).corpo;
+  assert.equal(lida.status, "PRONTO");
+  const [compra] = lida.transacoes;
+  assert.deepEqual(
+    [compra.valor, compra.data.slice(0, 10), compra.estabelecimento, compra.origem, compra.itens.length],
+    [57.22, "2026-10-02", "Supermercado Bom Preco", "CUPOM", 4],
+  );
+
+  // A mesma nota de novo é recusada sem ler nada
+  const repetida = await enviar({ qrcode: qrcodeDe(gerarChave(1)), pagina: pagina(paginaNfce()) });
+  assert.equal(repetida.status, 409);
+  assert.match(repetida.corpo.erro, /^Você já enviou esse cupom em/);
+
+  // O usuário arruma a categoria e o nome de um produto; a próxima compra na mesma loja já vem certa
+  const categorias = (await chamar(token, "GET", "/categorias")).corpo;
+  const mercado = categorias.find((c) => c.nome === "Mercado").id;
+  await chamar(token, "PATCH", `/transacoes/${compra.id}`, { categoriaId: mercado });
+  const { produtos } = (await chamar(token, "GET", "/produtos")).corpo;
+  const cafe = produtos.find((p) => p.nome === "Cafe Pilao Trad 500g");
+  assert.ok(cafe, produtos.map((p) => p.nome).join(", "));
+  await chamar(token, "PATCH", `/produtos/${cafe.id}`, { nome: "Café Pilão 500g" });
+
+  const itensSegunda = [
+    ["CAFE PILAO TRAD 500G", "7896089011906", "1", "UN", "23,5", "23,50"],
+    ["ARROZ CAMIL T1 5KG", "7896006711117", "1", "UN", "27,9", "27,90"],
+  ];
+  await enviar({ qrcode: qrcodeDe(gerarChave(2)), pagina: pagina(paginaNfce({ data: "16/10/2026", itens: itensSegunda })) });
+  await processarPendentes();
+  const [ultimo] = (await chamar(token, "GET", "/documentos")).corpo;
+  const segunda = (await chamar(token, "GET", `/documentos/${ultimo.id}`)).corpo.transacoes[0];
+  assert.equal(segunda.categoria.nome, "Mercado");
+  const detalheCafe = (await chamar(token, "GET", `/produtos/${cafe.id}`)).corpo;
+  assert.deepEqual(detalheCafe.historico.map((h) => h.preco), [21.9, 23.5]);
+
+  // Nota que a SEFAZ ainda não tem: erro claro, sem chamar a IA
+  const naoAchada = await enviar({ qrcode: qrcodeDe(gerarChave(3)), pagina: pagina("<html><body>NFC-e não encontrada</body></html>") });
+  await processarPendentes();
+  const erro = (await chamar(token, "GET", `/documentos/${naoAchada.corpo.id}`)).corpo;
+  assert.equal(erro.status, "ERRO");
+  assert.match(erro.erro, /^A SEFAZ ainda não mostra essa nota/);
+});

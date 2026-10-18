@@ -12,6 +12,9 @@ const ROTULO_TIPO = {
   CONTA_CONSUMO: "Conta/Boleto",
 };
 
+// Cupom lido pelo QR Code chega como a página da SEFAZ
+const rotulo = (documento) => (documento.mimeType === "text/html" ? "Cupom (QR Code)" : ROTULO_TIPO[documento.tipo]);
+
 const quando = (iso) => {
   const data = new Date(iso);
   const dois = (n) => String(n).padStart(2, "0");
@@ -37,7 +40,7 @@ export function HistoricoEnvios({ documentos, aoReenviarTexto, aoApagar }) {
 
   function abrirAcoes(documento) {
     if (documento.status === "PROCESSANDO") return;
-    const titulo = `${ROTULO_TIPO[documento.tipo]} de ${quando(documento.criadoEm)}`;
+    const titulo = `${rotulo(documento)} de ${quando(documento.criadoEm)}`;
     const temLancamentos = (documento._count?.transacoes ?? 0) > 0;
     const botoes = [{ text: "Cancelar", style: "cancel" }];
     if (documento.status === "ERRO" && documento.tipo === "TEXTO") {
@@ -64,7 +67,7 @@ export function HistoricoEnvios({ documentos, aoReenviarTexto, aoApagar }) {
             <Situacao documento={d} />
             <View style={{ flex: 1 }}>
               <Text style={estilos.titulo} numberOfLines={1}>
-                {ROTULO_TIPO[d.tipo]}
+                {rotulo(d)}
                 {d.texto ? `: “${d.texto}”` : ""}
               </Text>
               <Text style={[estilos.subtitulo, d.status === "ERRO" && estilos.subtituloErro]} numberOfLines={2}>

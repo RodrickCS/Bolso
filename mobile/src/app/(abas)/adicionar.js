@@ -1,14 +1,13 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { File } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
 import { HistoricoEnvios } from "../../componentes/historico";
+import { Resultado } from "../../componentes/resultado";
 import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../../componentes/ui";
 import { aguardarDocumento, api } from "../../lib/api";
-import { reais } from "../../lib/formato";
 import { cores, espaco } from "../../lib/tema";
 
 const TIPOS = [
@@ -31,34 +30,6 @@ async function fotoEmBase64(asset) {
   const imagem = await contexto.renderAsync();
   const salva = await imagem.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
   return salva.base64;
-}
-
-function Resultado({ documento }) {
-  if (documento.status === "ERRO") return <Aviso mensagem={`Não deu para ler: ${documento.erro}`} />;
-  const transacoes = documento.transacoes ?? [];
-  return (
-    <Cartao style={{ gap: espaco.p }}>
-      <View style={estilos.resultadoTopo}>
-        <Ionicons name="checkmark-circle" size={22} color={cores.marca} />
-        <Text style={estilos.resultadoTitulo}>
-          {transacoes.length === 1 ? "1 lançamento adicionado" : `${transacoes.length} lançamentos adicionados`}
-        </Text>
-      </View>
-      {!!documento.observacao && <Text style={estilos.observacao}>{documento.observacao}</Text>}
-      {transacoes.map((t) => (
-        <View key={t.id} style={estilos.resultadoLinha}>
-          <View style={{ flex: 1 }}>
-            <Text style={estilos.resultadoDescricao} numberOfLines={1}>{t.descricao}</Text>
-            <Text style={estilos.resultadoCategoria}>
-              {t.categoria?.nome ?? "Sem categoria"}
-              {t.itens.length > 0 && ` · ${t.itens.length} itens`}
-            </Text>
-          </View>
-          <Text style={estilos.resultadoValor}>{reais(t.valor)}</Text>
-        </View>
-      ))}
-    </Cartao>
-  );
 }
 
 export default function Adicionar() {
@@ -190,6 +161,15 @@ export default function Adicionar() {
           </>
         )}
 
+        <Text style={[estilos.secao, { marginTop: espaco.m }]}>Cupom fiscal</Text>
+        <Botao
+          titulo="Ler QR Code do cupom"
+          icone="qr-code-outline"
+          aoTocar={() => router.push(contaId ? `/qrcode?contaId=${contaId}` : "/qrcode")}
+          desativado={lendo}
+        />
+        <Text style={estilos.ajuda}>Mais rápido e certeiro que a foto: os itens vêm direto da SEFAZ, quase sem gastar IA.</Text>
+
         <Text style={[estilos.secao, { marginTop: espaco.m }]}>Ou envie um documento</Text>
         <Opcoes opcoes={TIPOS} valor={tipo} aoMudar={setTipo} />
         <Botao titulo="Tirar foto" icone="camera-outline" aoTocar={() => usarFoto(true)} desativado={lendo} />
@@ -220,11 +200,5 @@ const estilos = StyleSheet.create({
   secao: { fontSize: 17, fontWeight: "700", color: cores.texto },
   lendo: { flexDirection: "row", alignItems: "center", gap: 12 },
   lendoTexto: { flex: 1, color: cores.textoSecundario },
-  resultadoTopo: { flexDirection: "row", alignItems: "center", gap: espaco.p },
-  resultadoTitulo: { fontSize: 16, fontWeight: "700", color: cores.texto },
-  observacao: { fontSize: 14, color: cores.textoSecundario },
-  resultadoLinha: { flexDirection: "row", alignItems: "center", gap: espaco.p },
-  resultadoDescricao: { fontSize: 15, color: cores.texto },
-  resultadoCategoria: { fontSize: 13, color: cores.textoSecundario },
-  resultadoValor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
+  ajuda: { fontSize: 13, lineHeight: 18, color: cores.textoSecundario },
 });

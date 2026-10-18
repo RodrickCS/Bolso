@@ -80,6 +80,10 @@ export const api = {
   enviarArquivo: (arquivo, tipo, contaId) =>
     requisicao("/documentos", { metodo: "POST", corpo: { arquivo, tipo, contaId }, limiteMs: 120_000 }),
 
+  // qrcode: o link lido do cupom; pagina: { base64, tipo } da página da SEFAZ aberta pelo celular (ou null)
+  enviarNfce: (qrcode, pagina, contaId) =>
+    requisicao("/documentos/nfce", { metodo: "POST", corpo: { qrcode, pagina: pagina ?? undefined, contaId }, limiteMs: 90_000 }),
+
   produtos: () => requisicao("/produtos"),
   produto: (id) => requisicao(`/produtos/${id}`),
   renomearProduto: (id, nome) => requisicao(`/produtos/${id}`, { metodo: "PATCH", corpo: { nome } }),

@@ -1,5 +1,6 @@
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { config } from "../config.js";
+import { textoDoArquivo } from "../lib/formatos.js";
 import { hojeISO } from "../servicos/texto.js";
 import { FALLBACK, clienteIa, registrarUso, verificarResposta } from "./cliente.js";
 import { esquemaCategoria, esquemaExtracao } from "./esquemas.js";
@@ -28,16 +29,6 @@ const ROTULOS = {
   CONTA_CONSUMO: "conta de consumo ou boleto",
   TEXTO: "texto digitado pelo usuário",
 };
-
-// Muitos bancos ainda exportam em Latin-1 (Windows-1252): se não for UTF-8 válido, lê nessa codificação
-export function textoDoArquivo(conteudo) {
-  const bytes = Buffer.from(conteudo);
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  } catch {
-    return new TextDecoder("windows-1252").decode(bytes);
-  }
-}
 
 function blocoConteudo(documento) {
   if (documento.tipo === "TEXTO") return { type: "text", text: `<texto>${documento.texto}</texto>` };

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { config } from "../config.js";
 import { ErroHttp, assincrono, validar } from "../lib/erros.js";
 import { IMAGENS, TEXTOS, detectarFormato } from "../lib/formatos.js";
+import { decodificarPagina, enderecoDaSefaz, lerQrCode } from "../lib/nfce.js";
 import { prisma } from "../lib/prisma.js";
 import { acordarProcessador } from "../servicos/processador.js";
 import { garantirDono } from "./cadastros.js";
@@ -26,7 +27,7 @@ function conteudoBase64(arquivo) {
 
 // O mesmo arquivo de novo é recusado antes de ir para a IA, sem gastar créditos.
 // Envio que deu erro não conta (dá para tentar de novo), e apagar o envio libera o arquivo.
-async function recusarRepetido(usuarioId, hashConteudo) {
+async function recusarRepetido(usuarioId, hashConteudo, oQue = "esse arquivo") {
   const anterior = await prisma.documento.findFirst({
     where: { usuarioId, hashConteudo, status: { not: "ERRO" } },
     orderBy: { criadoEm: "desc" },
@@ -41,7 +42,7 @@ async function recusarRepetido(usuarioId, hashConteudo) {
   });
   throw new ErroHttp(
     409,
-    `Você já enviou esse arquivo em ${quando.replace(", ", " às ")}. Ele não foi lido de novo, para não gastar créditos da IA. Se quiser ler outra vez, apague o envio anterior no histórico.`,
+    `Você já enviou ${oQue} em ${quando.replace(", ", " às ")}. Ele não foi lido de novo, para não gastar créditos da IA. Se quiser ler outra vez, apague o envio anterior no histórico.`,
   );
 }
 
@@ -92,6 +93,81 @@ rotasDocumentos.post(
 
     const criado = await prisma.documento.create({
       data: { ...documento, usuarioId: req.usuarioId, contaId: dados.contaId },
+      select: camposDocumento,
+    });
+    acordarProcessador();
+    res.status(202).json(criado);
+  }),
+);
+
+const envioNfce = z.object({
+  qrcode: z.string().trim().min(1, "leia o QR Code do cupom"),
+  contaId: z.coerce.number().int().positive().optional(),
+  // O app abre a página da SEFAZ pelo celular (que está no Brasil; alguns sites recusam servidores de fora)
+  // e manda os bytes para cá. Sem a página, o servidor tenta abrir sozinho.
+  pagina: z.object({ base64: z.string().min(1), tipo: z.string().optional() }).optional(),
+});
+
+const LIMITE_PAGINA = 5 * 1024 * 1024;
+
+async function baixarPagina(url) {
+  if (!enderecoDaSefaz(url)) throw new ErroHttp(400, "Esse QR Code não aponta para um site da SEFAZ");
+  try {
+    // Redirecionamentos seguidos à mão, para conferir que cada endereço continua sendo do governo
+    let endereco = url;
+    let resposta;
+    for (let saltos = 0; ; saltos++) {
+      resposta = await fetch(endereco, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(20_000),
+        headers: { "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Mobile Safari/537.36" },
+      });
+      const destino = resposta.headers.get("location");
+      if (resposta.status < 300 || resposta.status >= 400 || !destino) break;
+      endereco = new URL(destino, endereco).toString();
+      if (saltos >= 3 || !enderecoDaSefaz(endereco)) throw new Error(`redirecionamento para ${endereco}`);
+    }
+    if (!resposta.ok) throw new Error(`status ${resposta.status}`);
+    const bytes = Buffer.from(await resposta.arrayBuffer());
+    if (bytes.length > LIMITE_PAGINA) throw new Error("página grande demais");
+    return decodificarPagina(bytes, resposta.headers.get("content-type") ?? "");
+  } catch (erro) {
+    console.error(`SEFAZ ${new URL(url).hostname}: ${erro.message}`);
+    throw new ErroHttp(502, "Não consegui abrir a nota no site da SEFAZ agora. Tente de novo em alguns minutos ou tire uma foto do cupom.");
+  }
+}
+
+// Cupom fiscal pelo QR Code (NFC-e): os itens vêm da SEFAZ, sem a IA ler foto
+rotasDocumentos.post(
+  "/nfce",
+  assincrono(async (req, res) => {
+    const dados = validar(envioNfce, req.body ?? {});
+    await garantirDono("conta", dados.contaId, req.usuarioId);
+    const qr = lerQrCode(dados.qrcode);
+    if (!qr) throw new ErroHttp(400, "Esse QR Code não é de um cupom fiscal eletrônico (NFC-e)");
+
+    // A mesma nota lida duas vezes é recusada, mesmo que a página venha um pouco diferente
+    const hashConteudo = createHash("sha256").update(`nfce:${qr.chave}`).digest("hex");
+    await recusarRepetido(req.usuarioId, hashConteudo, "esse cupom");
+
+    let html;
+    if (dados.pagina) {
+      const bytes = Buffer.from(dados.pagina.base64, "base64");
+      if (bytes.length > LIMITE_PAGINA) throw new ErroHttp(413, "Página da nota grande demais");
+      html = decodificarPagina(bytes, dados.pagina.tipo ?? "");
+    } else {
+      html = await baixarPagina(qr.url);
+    }
+
+    const criado = await prisma.documento.create({
+      data: {
+        usuarioId: req.usuarioId,
+        contaId: dados.contaId,
+        tipo: "CUPOM",
+        mimeType: "text/html",
+        conteudo: Buffer.from(html, "utf8"),
+        hashConteudo,
+      },
       select: camposDocumento,
     });
     acordarProcessador();

@@ -18,6 +18,7 @@ function Rotas() {
         <Stack.Screen name="contas" options={{ ...comCabecalho, title: "Contas e cartões" }} />
         <Stack.Screen name="produtos" options={{ ...comCabecalho, title: "Preços dos produtos" }} />
         <Stack.Screen name="produto" options={{ ...comCabecalho, title: "Produto" }} />
+        <Stack.Screen name="qrcode" options={{ ...comCabecalho, title: "Ler QR Code do cupom" }} />
       </Stack.Protected>
       <Stack.Protected guard={!logado}>
         <Stack.Screen name="entrar" />

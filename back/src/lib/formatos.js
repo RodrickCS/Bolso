@@ -36,3 +36,13 @@ export function detectarFormato(conteudo, mimeType, nome = "") {
   if (ehTexto && TEXTOS.has(mimeType)) return mimeType;
   return mimeType || "application/octet-stream";
 }
+
+// Muitos bancos (e sites da SEFAZ) ainda usam Latin-1 (Windows-1252): se não for UTF-8 válido, lê nessa codificação
+export function textoDoArquivo(conteudo) {
+  const bytes = Buffer.from(conteudo);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
