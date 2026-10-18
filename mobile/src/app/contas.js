@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../componentes/ui";
 import { api } from "../lib/api";
 import { PELO_TIPO, TIPOS_CONTA } from "../lib/contas";
@@ -53,7 +54,7 @@ export default function Contas() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" automaticOffset>
       <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
         <Text style={estilos.dica}>
           Separe seus gastos por cartão e conta. No painel você vê quanto foi em cada um, e num cartão de crédito

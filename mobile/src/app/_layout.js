@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { Abertura } from "../componentes/abertura";
 import { ProvedorAvisos } from "../componentes/avisos";
 import { ProvedorSessao, useSessao } from "../lib/sessao";
@@ -41,12 +42,15 @@ function Rotas() {
 
 export default function Layout() {
   return (
-    <ProvedorSessao>
-      <ProvedorAvisos>
-        <StatusBar style="dark" />
-        <Rotas />
-        <AberturaDaSessao />
-      </ProvedorAvisos>
-    </ProvedorSessao>
+    // Teclado igual no Android e no iPhone: com a tela inteira (edge-to-edge), o Android não encolhe a tela sozinho
+    <KeyboardProvider>
+      <ProvedorSessao>
+        <ProvedorAvisos>
+          <StatusBar style="dark" />
+          <Rotas />
+          <AberturaDaSessao />
+        </ProvedorAvisos>
+      </ProvedorSessao>
+    </KeyboardProvider>
   );
 }

@@ -2,7 +2,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "expo-router";
 import { useLayoutEffect, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useAvisos } from "../../componentes/avisos";
 import { api } from "../../lib/api";
 import { reais } from "../../lib/formato";
@@ -209,7 +210,7 @@ export default function Perguntar() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" automaticOffset>
       <ScrollView
         ref={rolagem}
         contentContainerStyle={estilos.conversa}

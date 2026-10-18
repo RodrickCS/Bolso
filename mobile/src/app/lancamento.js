@@ -2,7 +2,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import * as Haptics from "expo-haptics";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../componentes/ui";
 import { api } from "../lib/api";
@@ -132,7 +133,7 @@ export default function Lancamento() {
   ];
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" automaticOffset>
       <Stack.Screen options={{ title: editando ? "Editar lançamento" : "Novo lançamento" }} />
       {carregando ? (
         <ActivityIndicator color={cores.marca} style={{ marginTop: espaco.ggg }} />

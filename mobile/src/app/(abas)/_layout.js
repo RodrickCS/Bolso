@@ -43,6 +43,8 @@ export default function LayoutAbas() {
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: peso.forte },
         sceneStyle: { backgroundColor: cores.fundo },
+        // Com o teclado aberto, a barra de abas sai do caminho em vez de subir junto
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Início", headerShown: false, tabBarIcon: icone("home") }} />
@@ -57,7 +59,6 @@ export default function LayoutAbas() {
           title: "Assistente do Bolso",
           tabBarLabel: "Assistente",
           tabBarIcon: icone("chatbubble-ellipses"),
-          tabBarHideOnKeyboard: true,
         }}
       />
       <Tabs.Screen name="perfil" options={{ title: "Perfil", tabBarIcon: icone("person-circle") }} />
