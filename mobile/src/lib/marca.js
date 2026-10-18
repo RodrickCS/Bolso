@@ -5,8 +5,10 @@ export const MARCA = {
   verdeEscuro: "#0f5c3d",
   moeda: "#f5b82e",
   moedaBorda: "#d99a12",
-  // Moeda atrás do bolso, com a metade de cima aparecendo
-  moedaCentro: { x: 60, y: 30, raio: 13 },
+  // Moeda atrás do bolso, quase inteira à mostra
+  moedaCentro: { x: 60, y: 22, raio: 13 },
+  // Cifrão no meio da moeda (y é a linha de base do texto, por isso fica abaixo do centro)
+  cifrao: { tamanho: 17, y: 28 },
   bolso: "M20 34 H80 V62 Q80 69 74 72.5 L54.5 83.5 Q50 86 45.5 83.5 L26 72.5 Q20 69 20 62 Z",
   // Costura: o contorno de dentro e a bainha de cima, tracejados
   costura: "M26 46 V61 Q26 65.5 30 67.8 L48 78 Q50 79.2 52 78 L70 67.8 Q74 65.5 74 61 V46",

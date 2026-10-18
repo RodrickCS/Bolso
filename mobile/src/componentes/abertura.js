@@ -18,7 +18,7 @@ function Moeda() {
     <Svg width={TAMANHO} height={TAMANHO} viewBox="0 0 100 100">
       <G transform={AJUSTE}>
         <Circle cx={x} cy={y} r={raio} fill={MARCA.moeda} stroke={MARCA.moedaBorda} strokeWidth={2} />
-        <TextoSvg x={x} y={y - 2.5} fontSize={11} fontWeight="700" fill={MARCA.moedaBorda} textAnchor="middle" fontFamily="sans-serif">
+        <TextoSvg x={x} y={MARCA.cifrao.y} fontSize={MARCA.cifrao.tamanho} fontWeight="700" fill={MARCA.moedaBorda} textAnchor="middle" fontFamily="sans-serif">
           $
         </TextoSvg>
       </G>
