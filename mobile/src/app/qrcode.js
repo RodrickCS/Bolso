@@ -76,12 +76,12 @@ export default function LerQrCode() {
     return (
       <View style={{ flex: 1, backgroundColor: "#000" }}>
         <CameraView
-          style={StyleSheet.absoluteFill}
+          style={estilos.camera}
           facing="back"
           barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
           onBarcodeScanned={aoLer}
         />
-        <View style={estilos.sobreposicao} pointerEvents="none">
+        <View style={[estilos.sobreposicao, { pointerEvents: "none" }]}>
           <View style={estilos.moldura} />
           <Text style={estilos.dica}>Aponte para o QR Code no fim do cupom fiscal</Text>
         </View>
@@ -115,10 +115,12 @@ export default function LerQrCode() {
 
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: 12 },
+  camera: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", gap: espaco.m },
   titulo: { fontSize: 17, fontWeight: "700", color: cores.texto },
   texto: { fontSize: 15, lineHeight: 21, color: cores.textoSecundario, textAlign: "center" },
-  sobreposicao: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: espaco.g },
+  // Posição explícita: StyleSheet.absoluteFillObject não existe mais nesta versão do React Native
+  sobreposicao: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center", gap: espaco.g },
   moldura: { width: 240, height: 240, borderWidth: 3, borderColor: "#fff", borderRadius: raio * 2 },
   dica: {
     color: "#fff",
