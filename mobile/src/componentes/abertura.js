@@ -1,49 +1,21 @@
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
-import { Animated, Easing, StyleSheet, Text } from "react-native";
-import Svg, { Circle, G, Path, Text as TextoSvg } from "react-native-svg";
+import { AccessibilityInfo, Animated, Easing, StyleSheet, Text } from "react-native";
+import { Bolso, Moeda } from "./logo";
 import { MARCA } from "../lib/marca";
 
-// Mesmo tamanho e escala da splash nativa (imageWidth 200, desenho em 82% da imagem):
-// a troca da splash nativa para esta tela não dá pulo
+// Mesmo tamanho da splash nativa (imageWidth 200): a troca da splash nativa para esta tela não dá pulo
 const TAMANHO = 200;
-const ESCALA = 0.82;
-const AJUSTE = `translate(${(100 - 100 * ESCALA) / 2} ${(100 - 100 * ESCALA) / 2}) scale(${ESCALA})`;
 const TEMPO_MINIMO = 1300;
-
-function Moeda() {
-  const { x, y, raio } = MARCA.moedaCentro;
-  return (
-    <Svg width={TAMANHO} height={TAMANHO} viewBox="0 0 100 100">
-      <G transform={AJUSTE}>
-        <Circle cx={x} cy={y} r={raio} fill={MARCA.moeda} stroke={MARCA.moedaBorda} strokeWidth={2} />
-        <TextoSvg x={x} y={MARCA.cifrao.y} fontSize={MARCA.cifrao.tamanho} fontWeight="700" fill={MARCA.moedaBorda} textAnchor="middle" fontFamily="sans-serif">
-          $
-        </TextoSvg>
-      </G>
-    </Svg>
-  );
-}
-
-function Bolso() {
-  const costura = { stroke: MARCA.verde, strokeWidth: 2.2, fill: "none", strokeDasharray: "4.5 3.5", strokeLinecap: "round" };
-  return (
-    <Svg width={TAMANHO} height={TAMANHO} viewBox="0 0 100 100">
-      <G transform={AJUSTE}>
-        <Path d={MARCA.bolso} fill="#fff" />
-        <Path d={MARCA.costura} {...costura} />
-        <Path d={MARCA.bainha} {...costura} />
-      </G>
-    </Svg>
-  );
-}
 
 // Abertura animada: continua de onde a splash nativa parou. A moeda pula e cai no bolso,
 // o nome aparece e, quando a sessão termina de carregar, a tela some num fade.
 export function Abertura({ pronto }) {
   const [visivel, setVisivel] = useState(true);
   const [tempoOk, setTempoOk] = useState(false);
+  // "Reduzir movimento" ligado no celular: sem pulo da moeda nem zoom, só o fade
+  const [semMovimento, setSemMovimento] = useState(false);
   // Valores animados criados uma vez (useState, não useRef: eles são lidos na renderização)
   const [moeda] = useState(() => new Animated.Value(0));
   const [bolso] = useState(() => new Animated.Value(0));
@@ -56,14 +28,21 @@ export function Abertura({ pronto }) {
       bolso: { transform: [{ scaleY: bolso.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }) }] },
       nome: { opacity: nome, transform: [{ translateY: nome.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] },
       tela: { opacity: saida.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) },
-      logo: { transform: [{ scale: saida.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] }) }] },
+      logo: { transform: [{ scale: saida.interpolate({ inputRange: [0, 1], outputRange: [1, semMovimento ? 1 : 1.15] }) }] },
     }),
-    [moeda, bolso, nome, saida],
+    [moeda, bolso, nome, saida, semMovimento],
   );
 
   // Esconde a splash nativa só depois que esta tela, idêntica a ela, já está desenhada
-  function aoDesenhar() {
+  async function aoDesenhar() {
     SplashScreen.hideAsync().catch(() => {});
+    const reduzir = await AccessibilityInfo.isReduceMotionEnabled().catch(() => false);
+    if (reduzir) {
+      setSemMovimento(true);
+      nome.setValue(1);
+      setTempoOk(true);
+      return;
+    }
     const mola = { useNativeDriver: true, easing: Easing.out(Easing.cubic) };
     Animated.sequence([
       Animated.delay(150),
@@ -98,10 +77,10 @@ export function Abertura({ pronto }) {
       <StatusBar style="light" />
       <Animated.View style={[estilos.logo, estilosAnimados.logo]} accessible accessibilityLabel="Bolso">
         <Animated.View style={[estilos.camada, estilosAnimados.moeda]}>
-          <Moeda />
+          <Moeda tamanho={TAMANHO} />
         </Animated.View>
         <Animated.View style={[estilos.camada, estilosAnimados.bolso, { transformOrigin: "50% 30%" }]}>
-          <Bolso />
+          <Bolso tamanho={TAMANHO} />
         </Animated.View>
         <Animated.View style={[estilos.textos, estilosAnimados.nome]}>
           <Text style={estilos.nome}>Bolso</Text>

@@ -1,10 +1,12 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Aviso, Botao } from "../componentes/ui";
 import { api } from "../lib/api";
-import { lerValorBR, mesAtual } from "../lib/formato";
+import { iconeCategoria } from "../lib/categorias";
+import { lerValorBR, mesAtual, reais } from "../lib/formato";
 import { cores, espaco, raio } from "../lib/tema";
 
 const mostrarValor = (valor) => (valor ? String(valor).replace(".", ",") : "");
@@ -13,12 +15,15 @@ export default function Orcamentos() {
   const [categorias, setCategorias] = useState([]);
   const [valores, setValores] = useState({});
   const [originais, setOriginais] = useState({});
+  // Quanto já saiu em cada categoria neste mês, para ajudar a escolher o limite
+  const [gastos, setGastos] = useState({});
   const [erro, setErro] = useState(null);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.categorias(), api.orcamentos(mesAtual())])
-      .then(([todas, orcamentos]) => {
+    Promise.all([api.categorias(), api.orcamentos(mesAtual()), api.painel(mesAtual())])
+      .then(([todas, orcamentos, painel]) => {
+        setGastos(Object.fromEntries(painel.porCategoria.map((c) => [c.categoriaId, c.total])));
         const atuais = Object.fromEntries(orcamentos.map((o) => [o.categoriaId, mostrarValor(o.limite)]));
         setCategorias(todas.filter((c) => c.tipo === "DESPESA"));
         setValores(atuais);
@@ -58,7 +63,13 @@ export default function Orcamentos() {
         </Text>
         {categorias.map((c) => (
           <View key={c.id} style={estilos.linha}>
-            <Text style={estilos.nome} numberOfLines={1}>{c.nome}</Text>
+            <View style={estilos.icone}>
+              <Ionicons name={iconeCategoria(c.nome)} size={18} color={cores.textoSecundario} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={estilos.nome} numberOfLines={1}>{c.nome}</Text>
+              <Text style={estilos.gasto}>{gastos[c.id] ? `${reais(gastos[c.id])} este mês` : "Nada este mês"}</Text>
+            </View>
             <View style={estilos.campo}>
               <Text style={estilos.prefixo}>R$</Text>
               <TextInput
@@ -85,8 +96,10 @@ export default function Orcamentos() {
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: espaco.p },
   dica: { fontSize: 14, color: cores.textoSecundario, marginBottom: espaco.p },
-  linha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: espaco.m, minHeight: 52 },
-  nome: { fontSize: 16, color: cores.texto, flex: 1 },
+  linha: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56 },
+  icone: { width: 36, height: 36, borderRadius: 18, backgroundColor: cores.superficie, alignItems: "center", justifyContent: "center" },
+  nome: { fontSize: 16, color: cores.texto },
+  gasto: { fontSize: 13, color: cores.textoSecundario },
   campo: {
     flexDirection: "row",
     alignItems: "center",

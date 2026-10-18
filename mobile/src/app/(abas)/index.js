@@ -3,11 +3,12 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AreaMeses, Rosca, fatiasDoMes, iconeCategoria } from "../../componentes/graficos";
+import { AreaMeses, Rosca, fatiasDoMes } from "../../componentes/graficos";
 import { CartaoAssistente, ContasECartoes, ListaAlertas, ListaAssinaturas, ListaOrcamentos } from "../../componentes/painel";
 import { CartaoPrecos } from "../../componentes/precos";
-import { Aviso, Cartao, Vazio } from "../../componentes/ui";
+import { Avatar, Aviso, Cartao, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
+import { iconeCategoria } from "../../lib/categorias";
 import { diaMes, mesAtual, nomeDoMes, reais, somarMes } from "../../lib/formato";
 import { saudacao } from "../../lib/saudacao";
 import { useSessao } from "../../lib/sessao";
@@ -21,12 +22,9 @@ const soMes = (mes) => nomeDoMes(mes).split(" ")[0].toLowerCase();
 function Cabecalho() {
   const { usuario } = useSessao();
   const { titulo, frase } = saudacao(usuario?.nome);
-  const inicial = usuario?.nome?.trim()[0]?.toUpperCase() ?? "B";
   return (
     <View style={estilos.cabecalho}>
-      <View style={estilos.avatar}>
-        <Text style={estilos.avatarTexto}>{inicial}</Text>
-      </View>
+      <Avatar nome={usuario?.nome} />
       <View style={{ flex: 1 }}>
         <Text style={estilos.saudacao} numberOfLines={1}>{titulo}</Text>
         <Text style={estilos.frase} numberOfLines={2}>{frase}</Text>
@@ -298,8 +296,6 @@ export default function Painel() {
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: 14, paddingBottom: 40 },
   cabecalho: { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
-  avatarTexto: { color: "#fff", fontSize: 18, fontWeight: "700" },
   saudacao: { fontSize: 18, fontWeight: "700", color: cores.texto },
   frase: { fontSize: 13, lineHeight: 18, color: cores.textoSecundario },
   seletor: {

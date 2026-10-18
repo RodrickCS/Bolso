@@ -1,10 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../componentes/ui";
 import { api } from "../lib/api";
+import { iconeCategoria } from "../lib/categorias";
+import { PELO_TIPO } from "../lib/contas";
 import { dataBR, hojeISO, lerDataBR, lerValorBR, reais, valorParaCampo } from "../lib/formato";
 import { cores, espaco } from "../lib/tema";
 import { useAvisos } from "../componentes/avisos";
@@ -91,6 +94,7 @@ export default function Lancamento() {
           repetir: tipo === "DESPESA" ? (repetir ?? undefined) : false,
         });
       }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       toast(editando ? "Lançamento atualizado" : "Lançamento adicionado");
       router.back();
     } catch (e) {
@@ -119,10 +123,13 @@ export default function Lancamento() {
   }
 
   const opcoesCategoria = [
-    ...(editando ? [] : [{ valor: null, rotulo: "Automática" }]),
-    ...categorias.filter((c) => c.tipo === tipo).map((c) => ({ valor: c.id, rotulo: c.nome })),
+    ...(editando ? [] : [{ valor: null, rotulo: "Automática", icone: "sparkles-outline" }]),
+    ...categorias.filter((c) => c.tipo === tipo).map((c) => ({ valor: c.id, rotulo: c.nome, icone: iconeCategoria(c.nome) })),
   ];
-  const opcoesConta = [{ valor: null, rotulo: "Nenhuma" }, ...contas.map((c) => ({ valor: c.id, rotulo: c.nome }))];
+  const opcoesConta = [
+    { valor: null, rotulo: "Nenhuma" },
+    ...contas.map((c) => ({ valor: c.id, rotulo: c.nome, icone: PELO_TIPO[c.tipo]?.icone })),
+  ];
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -150,10 +157,23 @@ export default function Lancamento() {
             </View>
           )}
 
-          <Opcoes opcoes={TIPOS} valor={tipo} aoMudar={mudarTipo} />
-
-          <Rotulo>Valor</Rotulo>
-          <Campo value={valor} onChangeText={setValor} placeholder="0,00" keyboardType="decimal-pad" accessibilityLabel="Valor" />
+          {/* O valor é o principal da tela: grande, no topo, com o tipo logo acima */}
+          <View style={estilos.valorCartao}>
+            <Opcoes opcoes={TIPOS} valor={tipo} aoMudar={mudarTipo} />
+            <View style={estilos.valorLinha}>
+              <Text style={estilos.valorMoeda}>R$</Text>
+              <TextInput
+                value={valor}
+                onChangeText={setValor}
+                placeholder="0,00"
+                placeholderTextColor={cores.textoSuave}
+                keyboardType="decimal-pad"
+                autoFocus={!editando}
+                style={[estilos.valorEntrada, tipo === "RECEITA" && { color: cores.marca }]}
+                accessibilityLabel="Valor"
+              />
+            </View>
+          </View>
 
           <Rotulo>Descrição</Rotulo>
           <Campo value={descricao} onChangeText={setDescricao} placeholder="Ex: Padaria" accessibilityLabel="Descrição" />
@@ -215,6 +235,18 @@ const estilos = StyleSheet.create({
   nota: { flexDirection: "row", gap: 6, alignItems: "center", marginBottom: espaco.p },
   notaTexto: { flex: 1, fontSize: 13, color: cores.textoSecundario },
   dica: { fontSize: 13, color: cores.textoSuave },
+  valorCartao: {
+    gap: 12,
+    padding: espaco.m,
+    marginBottom: espaco.p,
+    backgroundColor: cores.superficie,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: cores.borda,
+  },
+  valorLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
+  valorMoeda: { fontSize: 24, fontWeight: "600", color: cores.textoSecundario },
+  valorEntrada: { flex: 1, minWidth: 0, fontSize: 40, fontWeight: "700", color: cores.texto, paddingVertical: 4 },
   item: { flexDirection: "row", justifyContent: "space-between", gap: espaco.p },
   itemNome: { flex: 1, fontSize: 14, color: cores.texto },
   itemValor: { fontSize: 14, color: cores.texto, fontVariant: ["tabular-nums"] },

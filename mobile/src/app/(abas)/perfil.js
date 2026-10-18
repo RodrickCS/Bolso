@@ -4,7 +4,7 @@ import { router, useFocusEffect } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { useCallback, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Aviso, Botao, Campo, Cartao } from "../../componentes/ui";
+import { Avatar, Aviso, Botao, Campo, Cartao } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { dolares, mesAtual, nomeDoMes } from "../../lib/formato";
 import { useSessao } from "../../lib/sessao";
@@ -108,9 +108,12 @@ export default function Perfil() {
 
   return (
     <ScrollView contentContainerStyle={estilos.conteudo}>
-      <Cartao style={{ gap: 2 }}>
-        <Text style={estilos.nome}>{usuario?.nome}</Text>
-        <Text style={estilos.email}>{usuario?.email}</Text>
+      <Cartao style={estilos.conta}>
+        <Avatar nome={usuario?.nome} tamanho={52} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={estilos.nome} numberOfLines={1}>{usuario?.nome}</Text>
+          <Text style={estilos.email} numberOfLines={1}>{usuario?.email}</Text>
+        </View>
       </Cartao>
 
       <Cartao style={{ paddingVertical: 4 }}>
@@ -160,6 +163,7 @@ const estilos = StyleSheet.create({
   conteudo: { padding: espaco.m, gap: 12, paddingBottom: 40 },
   nome: { fontSize: 18, fontWeight: "700", color: cores.texto },
   email: { fontSize: 14, color: cores.textoSecundario },
+  conta: { flexDirection: "row", alignItems: "center", gap: 14 },
   secao: { fontSize: 17, fontWeight: "700", color: cores.texto, marginTop: espaco.p },
   item: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 52 },
   itemTexto: { flex: 1, fontSize: 16, color: cores.texto },

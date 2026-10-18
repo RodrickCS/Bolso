@@ -1,9 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import { Aviso, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
+import { iconeCategoria } from "../../lib/categorias";
 import { diaMes, mesAtual, reais } from "../../lib/formato";
 import { cores, espaco, raio } from "../../lib/tema";
 import { useAvisos } from "../../componentes/avisos";
@@ -19,44 +20,102 @@ const ROTULO_ORIGEM = {
   RECORRENTE: "Gasto fixo",
 };
 
-function ItemGasto({ transacao, aoTocar, aoSegurar }) {
+const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+// "Hoje", "Ontem" ou "Sexta, 16/10"
+function rotuloDoDia(iso) {
+  const [ano, mes, dia] = iso.slice(0, 10).split("-").map(Number);
+  const data = new Date(ano, mes - 1, dia);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const diferenca = Math.round((hoje - data) / 86400000);
+  if (diferenca === 0) return "Hoje";
+  if (diferenca === 1) return "Ontem";
+  return `${DIAS_SEMANA[data.getDay()]}, ${diaMes(iso)}`;
+}
+
+// Lançamentos do mês agrupados por dia, com o total gasto em cada dia
+function agruparPorDia(transacoes) {
+  const grupos = new Map();
+  for (const t of transacoes) {
+    const dia = t.data.slice(0, 10);
+    if (!grupos.has(dia)) grupos.set(dia, []);
+    grupos.get(dia).push(t);
+  }
+  return [...grupos].map(([dia, data]) => ({
+    dia,
+    data,
+    gasto: data.filter((t) => t.tipo === "DESPESA" && !t.conciliadaComId).reduce((soma, t) => soma + Number(t.valor), 0),
+  }));
+}
+
+function ItemGasto({ transacao, primeiro, ultimo, aoTocar, aoSegurar }) {
   const receita = transacao.tipo === "RECEITA";
   const detalhes = [
-    diaMes(transacao.data),
-    ROTULO_ORIGEM[transacao.origem],
+    transacao.categoria?.nome ?? "Sem categoria",
     transacao.conta?.nome,
+    ROTULO_ORIGEM[transacao.origem],
     transacao.parcelaTotal && `${transacao.parcelaAtual}/${transacao.parcelaTotal}`,
     transacao.itens.length > 0 && `${transacao.itens.length} itens`,
   ].filter(Boolean);
 
   return (
-    <Pressable onPress={aoTocar} onLongPress={aoSegurar} style={({ pressed }) => [estilos.item, pressed && { opacity: 0.7 }]}>
+    <Pressable
+      onPress={aoTocar}
+      onLongPress={aoSegurar}
+      style={({ pressed }) => [estilos.item, primeiro && estilos.itemPrimeiro, ultimo && estilos.itemUltimo, pressed && { backgroundColor: cores.fundo }]}
+      accessibilityRole="button"
+      accessibilityHint="Toque para editar, segure para apagar"
+    >
+      <View style={[estilos.icone, receita && { backgroundColor: cores.marcaSuave }]}>
+        <Ionicons name={iconeCategoria(transacao.categoria?.nome)} size={18} color={receita ? cores.marca : cores.textoSecundario} />
+      </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={estilos.descricao} numberOfLines={1}>{transacao.descricao}</Text>
-        <Text style={estilos.detalhes}>{detalhes.join(" · ")}</Text>
-        <View style={estilos.etiquetas}>
-          <Text style={estilos.categoria}>{transacao.categoria?.nome ?? "Sem categoria"}</Text>
-          {transacao.recorrencia?.ativa && !transacao.conciliadaComId && (
-            <View style={estilos.conciliada}>
-              <Ionicons name="repeat" size={12} color={cores.textoSecundario} />
-              <Text style={estilos.conciliadaTexto}>todo mês</Text>
-            </View>
-          )}
-          {transacao.conciliadaComId && (
-            <View style={estilos.conciliada}>
-              <Ionicons name="link-outline" size={12} color={cores.textoSecundario} />
-              <Text style={estilos.conciliadaTexto}>
-                {transacao.origem === "RECORRENTE" ? "trocado pela cobrança real" : "já contado na fatura"}
-              </Text>
-            </View>
-          )}
-        </View>
+        <Text style={estilos.detalhes} numberOfLines={1}>{detalhes.join(" · ")}</Text>
+        {transacao.recorrencia?.ativa && !transacao.conciliadaComId && (
+          <View style={estilos.etiqueta}>
+            <Ionicons name="repeat" size={12} color={cores.textoSecundario} />
+            <Text style={estilos.etiquetaTexto}>todo mês</Text>
+          </View>
+        )}
+        {transacao.conciliadaComId && (
+          <View style={estilos.etiqueta}>
+            <Ionicons name="link-outline" size={12} color={cores.textoSecundario} />
+            <Text style={estilos.etiquetaTexto}>
+              {transacao.origem === "RECORRENTE" ? "trocado pela cobrança real" : "já contado na fatura"}
+            </Text>
+          </View>
+        )}
       </View>
-      <Text style={[estilos.valor, transacao.conciliadaComId && estilos.valorRiscado]}>
+      <Text style={[estilos.valor, receita && { color: cores.marca }, transacao.conciliadaComId && estilos.valorRiscado]}>
         {receita ? "+ " : "− "}
         {reais(transacao.valor)}
       </Text>
     </Pressable>
+  );
+}
+
+function Resumo({ transacoes }) {
+  const contam = transacoes.filter((t) => !t.conciliadaComId);
+  const soma = (tipo) => contam.filter((t) => t.tipo === tipo).reduce((total, t) => total + Number(t.valor), 0);
+  return (
+    <View style={estilos.resumo}>
+      <View style={{ flex: 1 }}>
+        <Text style={estilos.resumoRotulo}>Gastos</Text>
+        <Text style={estilos.resumoValor}>{reais(soma("DESPESA"))}</Text>
+      </View>
+      <View style={estilos.resumoDivisor} />
+      <View style={{ flex: 1 }}>
+        <Text style={estilos.resumoRotulo}>Entradas</Text>
+        <Text style={estilos.resumoValor}>{reais(soma("RECEITA"))}</Text>
+      </View>
+      <View style={estilos.resumoDivisor} />
+      <View style={{ flex: 1 }}>
+        <Text style={estilos.resumoRotulo}>Lançamentos</Text>
+        <Text style={estilos.resumoValor}>{contam.length}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -103,17 +162,19 @@ export default function Gastos() {
   }
 
   return (
-    <FlatList
-      data={transacoes ?? []}
+    <SectionList
+      sections={transacoes ? agruparPorDia(transacoes) : []}
       keyExtractor={(t) => String(t.id)}
       contentContainerStyle={estilos.lista}
+      stickySectionHeadersEnabled={false}
       ListHeaderComponent={
-        <View style={{ gap: espaco.p, marginBottom: espaco.p }}>
+        <View style={{ gap: 12, marginBottom: espaco.p }}>
           <SeletorMes mes={mes} aoMudar={setMes} />
           <Aviso mensagem={erro} />
+          {transacoes?.length > 0 && <Resumo transacoes={transacoes} />}
           <View style={estilos.cabecalho}>
             <Text style={estilos.dica}>
-              {transacoes?.length ? "Toque para editar. Segure para apagar." : ""}
+              {transacoes?.length ? "Toque para editar, segure para apagar." : ""}
             </Text>
             <Pressable onPress={() => router.push("/lancamento")} hitSlop={10} style={estilos.novo} accessibilityRole="button">
               <Ionicons name="add" size={18} color={cores.marca} />
@@ -122,15 +183,26 @@ export default function Gastos() {
           </View>
         </View>
       }
-      ListEmptyComponent={transacoes && <Vazio icone="wallet-outline" texto="Nenhum lançamento neste mês." />}
-      renderItem={({ item }) => (
+      ListEmptyComponent={
+        transacoes && (
+          <Vazio icone="wallet-outline" texto="Nenhum lançamento neste mês. Toque no + para mandar um cupom, uma fatura ou escrever um gasto." />
+        )
+      }
+      renderSectionHeader={({ section }) => (
+        <View style={estilos.dia}>
+          <Text style={estilos.diaTitulo}>{rotuloDoDia(section.dia)}</Text>
+          {section.gasto > 0 && <Text style={estilos.diaTotal}>{reais(section.gasto)}</Text>}
+        </View>
+      )}
+      renderItem={({ item, index, section }) => (
         <ItemGasto
           transacao={item}
+          primeiro={index === 0}
+          ultimo={index === section.data.length - 1}
           aoTocar={() => router.push(`/lancamento?id=${item.id}`)}
           aoSegurar={() => confirmarExclusao(item)}
         />
       )}
-      ItemSeparatorComponent={() => <View style={{ height: espaco.p }} />}
       refreshControl={
         <RefreshControl
           refreshing={atualizando}
@@ -150,32 +222,45 @@ const estilos = StyleSheet.create({
   lista: { padding: espaco.m, paddingBottom: 40 },
   cabecalho: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   dica: { fontSize: 13, color: cores.textoSuave, flex: 1 },
-  novo: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 4 },
+  novo: { flexDirection: "row", alignItems: "center", gap: 2, minHeight: 36 },
   novoTexto: { fontSize: 15, fontWeight: "600", color: cores.marca },
-  item: {
+  resumo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: espaco.m,
     backgroundColor: cores.superficie,
     borderRadius: raio,
     borderWidth: 1,
     borderColor: cores.borda,
-    padding: 14,
+    paddingVertical: 12,
+    paddingHorizontal: espaco.m,
+    gap: 12,
   },
-  descricao: { fontSize: 16, fontWeight: "600", color: cores.texto },
+  resumoRotulo: { fontSize: 12, color: cores.textoSecundario },
+  resumoValor: { fontSize: 16, fontWeight: "700", color: cores.texto },
+  resumoDivisor: { width: 1, alignSelf: "stretch", backgroundColor: cores.borda },
+  dia: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: espaco.m, marginBottom: espaco.p },
+  diaTitulo: { fontSize: 14, fontWeight: "700", color: cores.texto },
+  diaTotal: { fontSize: 13, color: cores.textoSecundario },
+  // As linhas de um mesmo dia formam um cartão só: bordas arredondadas só na primeira e na última
+  item: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: cores.superficie,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderTopWidth: 1,
+    borderColor: cores.borda,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  itemPrimeiro: { borderTopLeftRadius: raio, borderTopRightRadius: raio },
+  itemUltimo: { borderBottomWidth: 1, borderBottomLeftRadius: raio, borderBottomRightRadius: raio },
+  icone: { width: 40, height: 40, borderRadius: 20, backgroundColor: cores.fundo, alignItems: "center", justifyContent: "center" },
+  descricao: { fontSize: 15, fontWeight: "600", color: cores.texto },
   detalhes: { fontSize: 13, color: cores.textoSecundario },
-  etiquetas: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
-  categoria: {
-    fontSize: 12,
-    color: cores.marca,
-    backgroundColor: cores.marcaSuave,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  conciliada: { flexDirection: "row", alignItems: "center", gap: 3 },
-  conciliadaTexto: { fontSize: 12, color: cores.textoSecundario },
-  valor: { fontSize: 16, fontWeight: "700", color: cores.texto, fontVariant: ["tabular-nums"] },
+  etiqueta: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
+  etiquetaTexto: { fontSize: 12, color: cores.textoSecundario },
+  valor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
   valorRiscado: { color: cores.textoSuave, textDecorationLine: "line-through" },
 });

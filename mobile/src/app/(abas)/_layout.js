@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as Haptics from "expo-haptics";
 import { Tabs } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { cores } from "../../lib/tema";
@@ -15,7 +16,10 @@ function BotaoAdicionar({ onPress, onLongPress, accessibilityState }) {
   return (
     <View style={estilos.adicionarArea}>
       <Pressable
-        onPress={onPress}
+        onPress={(e) => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          onPress?.(e);
+        }}
         onLongPress={onLongPress}
         style={({ pressed }) => [estilos.adicionar, pressed && { transform: [{ scale: 0.95 }] }]}
         accessibilityRole="button"

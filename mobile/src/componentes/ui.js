@@ -28,7 +28,7 @@ export function Botao({ titulo, aoTocar, icone, variante = "primario", carregand
   );
 }
 
-// Grupo de opções em "pílulas" (escolha única). opcoes: [{ valor, rotulo }]
+// Grupo de opções em "pílulas" (escolha única). opcoes: [{ valor, rotulo, icone? }]
 export function Opcoes({ opcoes, valor, aoMudar }) {
   return (
     <View style={estilos.opcoes} accessibilityRole="radiogroup">
@@ -38,10 +38,12 @@ export function Opcoes({ opcoes, valor, aoMudar }) {
           <Pressable
             key={String(o.valor)}
             onPress={() => aoMudar(o.valor)}
-            style={[estilos.opcao, ativa && estilos.opcaoAtiva]}
+            hitSlop={4}
+            style={({ pressed }) => [estilos.opcao, ativa && estilos.opcaoAtiva, pressed && !ativa && { backgroundColor: cores.fundo }]}
             accessibilityRole="radio"
             accessibilityState={{ selected: ativa }}
           >
+            {o.icone && <Ionicons name={o.icone} size={16} color={ativa ? "#fff" : cores.textoSecundario} />}
             <Text style={[estilos.opcaoTexto, ativa && estilos.opcaoTextoAtiva]}>{o.rotulo}</Text>
           </Pressable>
         );
@@ -50,12 +52,26 @@ export function Opcoes({ opcoes, valor, aoMudar }) {
   );
 }
 
+// Inicial do nome num círculo verde (o app não guarda foto)
+export function Avatar({ nome, tamanho = 44 }) {
+  const inicial = nome?.trim()[0]?.toUpperCase() ?? "B";
+  return (
+    <View
+      style={[estilos.avatar, { width: tamanho, height: tamanho, borderRadius: tamanho / 2 }]}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <Text style={[estilos.avatarTexto, { fontSize: tamanho * 0.42 }]}>{inicial}</Text>
+    </View>
+  );
+}
+
 export function Rotulo({ children }) {
   return <Text style={estilos.rotulo}>{children}</Text>;
 }
 
-export function Campo(props) {
-  return <TextInput placeholderTextColor={cores.textoSuave} style={estilos.campo} {...props} />;
+export function Campo({ style, ...props }) {
+  return <TextInput placeholderTextColor={cores.textoSuave} style={[estilos.campo, style]} {...props} />;
 }
 
 export function Cartao({ children, style }) {
@@ -138,8 +154,11 @@ const estilos = StyleSheet.create({
   seletorTexto: { fontSize: 17, fontWeight: "600", color: cores.texto },
   opcoes: { flexDirection: "row", flexWrap: "wrap", gap: espaco.p },
   opcao: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 14,
-    minHeight: 36,
+    minHeight: 40,
     justifyContent: "center",
     borderRadius: 999,
     borderWidth: 1,
@@ -149,6 +168,8 @@ const estilos = StyleSheet.create({
   opcaoAtiva: { backgroundColor: cores.marca, borderColor: cores.marca },
   opcaoTexto: { fontSize: 14, color: cores.texto },
   opcaoTextoAtiva: { color: "#fff", fontWeight: "600" },
+  avatar: { backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
+  avatarTexto: { color: "#fff", fontWeight: "700" },
   rotulo: { fontSize: 14, fontWeight: "600", color: cores.textoSecundario, marginTop: espaco.p },
   vazio: { alignItems: "center", gap: espaco.p, paddingVertical: 48 },
   vazioTexto: { color: cores.textoSecundario, textAlign: "center", fontSize: 15, maxWidth: 260 },
