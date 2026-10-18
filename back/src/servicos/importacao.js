@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { categoriaLembrada, lembrarCategoria } from "./categorias.js";
 import { decidirConciliacao, ehReenvio } from "./conciliacao.js";
+import { absorverAutomatico, categoriaDeAssinatura, repetirTodoMes } from "./recorrencias.js";
 
 const ORIGEM_POR_DOCUMENTO = {
   TEXTO: "TEXTO",
@@ -12,6 +13,8 @@ const ORIGEM_POR_DOCUMENTO = {
   CONTA_CONSUMO: "CONTA_CONSUMO",
 };
 const UM_DIA = 24 * 60 * 60 * 1000;
+// Gastos fixos só nascem de documentos avulsos; faturas e extratos já trazem a cobrança todo mês
+const PODE_REPETIR = new Set(["TEXTO", "COMPROVANTE", "CONTA_CONSUMO"]);
 
 const arredondar = (valor) => Math.round(Number(valor) * 100) / 100;
 
@@ -61,6 +64,8 @@ export async function inserirTransacao(tx, dados, itens = []) {
       data: { conciliadaComId: conciliacao.oficialId },
     });
   }
+  // Um gasto fixo lançado automaticamente sai da soma quando a cobrança de verdade chega
+  await absorverAutomatico(tx, criada);
   return criada;
 }
 
@@ -69,6 +74,7 @@ export async function salvarExtracao(documento, extracao) {
   const { usuarioId } = documento;
   const categorias = await prisma.categoria.findMany({ where: { usuarioId } });
   const idPorNome = new Map(categorias.map((c) => [c.nome, c.id]));
+  const nomePorId = new Map(categorias.map((c) => [c.id, c.nome]));
 
   return prisma.$transaction(
     async (tx) => {
@@ -103,6 +109,9 @@ export async function salvarExtracao(documento, extracao) {
         );
         if (!criada) continue;
         if (!lembrada) await lembrarCategoria(usuarioId, referencia, categoriaId, { db: tx });
+        // A IA diz se o gasto se repete todo mês com o mesmo valor; sem a opinião dela, vale a categoria Assinaturas
+        const repete = t.repete_todo_mes ?? categoriaDeAssinatura(nomePorId.get(categoriaId));
+        if (repete && PODE_REPETIR.has(documento.tipo)) await repetirTodoMes(tx, criada, { criadaPorIa: true });
         criadas.push(criada.id);
       }
       return criadas;

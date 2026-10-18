@@ -3,6 +3,7 @@ import { z } from "zod";
 import { assincrono, validar } from "../lib/erros.js";
 import { intervaloDoMes, parametroMes } from "../lib/meses.js";
 import { prisma } from "../lib/prisma.js";
+import { gerarLancamentosFixos } from "../servicos/recorrencias.js";
 
 export const rotasPainel = Router();
 
@@ -14,6 +15,8 @@ rotasPainel.get(
   assincrono(async (req, res) => {
     const { mes } = validar(filtro, req.query);
     const { inicio, fim } = intervaloDoMes(mes);
+    // O painel é a primeira tela: gera os gastos fixos que venceram enquanto o servidor dormia
+    await gerarLancamentosFixos(req.usuarioId);
     const where = { usuarioId: req.usuarioId, data: { gte: inicio, lt: fim }, conciliadaComId: null };
 
     const [grupos, categorias, gruposConta, contas] = await Promise.all([

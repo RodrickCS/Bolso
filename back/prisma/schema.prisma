@@ -28,6 +28,7 @@ enum OrigemTransacao {
   EXTRATO
   COMPROVANTE
   CONTA_CONSUMO
+  RECORRENTE
 }
 
 enum TipoDocumento {
@@ -62,6 +63,7 @@ model Usuario {
   orcamentos Orcamento[]
   resumos    ResumoAssistente[]
   marcacoes  Marcacao[]
+  recorrencias Recorrencia[]
 }
 
 model Conta {
@@ -72,6 +74,7 @@ model Conta {
   usuario    Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   transacoes Transacao[]
   documentos Documento[]
+  recorrencias Recorrencia[]
 
   @@index([usuarioId])
 }
@@ -85,6 +88,7 @@ model Categoria {
   transacoes Transacao[]
   regras     RegraCategoria[]
   orcamentos Orcamento[]
+  recorrencias Recorrencia[]
 
   @@unique([usuarioId, nome])
 }
@@ -132,6 +136,8 @@ model Transacao {
   // Quando o mesmo gasto aparece duas vezes (cupom + fatura), a cópia aponta
   // para a transação "oficial" e deixa de ser somada no painel.
   conciliadaComId Int?
+  // Gasto fixo que gerou (ou que foi criado a partir de) este lançamento
+  recorrenciaId   Int?
   criadoEm        DateTime        @default(now())
   usuario         Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   conta           Conta?          @relation(fields: [contaId], references: [id], onDelete: SetNull)
@@ -139,6 +145,7 @@ model Transacao {
   documento       Documento?      @relation(fields: [documentoId], references: [id], onDelete: SetNull)
   conciliadaCom   Transacao?      @relation("Conciliacao", fields: [conciliadaComId], references: [id], onDelete: SetNull)
   duplicatas      Transacao[]     @relation("Conciliacao")
+  recorrencia     Recorrencia?    @relation(fields: [recorrenciaId], references: [id], onDelete: SetNull)
   itens           Item[]
 
   @@index([usuarioId, data])
@@ -231,4 +238,29 @@ model Marcacao {
   usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([usuarioId, chave])
+}
+
+// Gasto fixo que se repete todo mês com o mesmo valor (assinatura, aluguel, mensalidade).
+// No dia, vira um lançamento sozinho; quando a fatura chega, a linha dela vale e o automático sai da soma.
+model Recorrencia {
+  id              Int          @id @default(autoincrement())
+  usuarioId       Int
+  descricao       String
+  estabelecimento String?
+  valor           Decimal      @db.Decimal(12, 2)
+  dia             Int
+  proximaData     DateTime     @db.Date
+  categoriaId     Int?
+  contaId         Int?
+  ativa           Boolean      @default(true)
+  // Marcada pela IA na leitura (o usuário pode desfazer) ou pelo próprio usuário
+  criadaPorIa     Boolean      @default(false)
+  criadoEm        DateTime     @default(now())
+  usuario         Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria       Categoria?   @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  conta           Conta?       @relation(fields: [contaId], references: [id], onDelete: SetNull)
+  transacoes      Transacao[]
+
+  @@index([ativa, proximaData])
+  @@index([usuarioId])
 }

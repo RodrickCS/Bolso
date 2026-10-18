@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { categoriaLembrada } from "./categorias.js";
 import { salvarExtracao } from "./importacao.js";
 import { documentoParaIa, ehNfce, extracaoNfce } from "./nfce.js";
+import { gerarLancamentosFixos } from "./recorrencias.js";
 import { interpretarTextoLocal } from "./texto.js";
 
 // Fila simples usando a própria tabela Documento: sem Redis, cabe no plano grátis.
@@ -104,5 +105,9 @@ export async function iniciarProcessador() {
   // Documentos que estavam no meio do processamento quando o servidor caiu voltam para a fila
   await prisma.documento.updateMany({ where: { status: "PROCESSANDO" }, data: { status: "PENDENTE" } });
   setInterval(processarPendentes, config.processador.intervaloMs);
+  // Gastos fixos que vencem hoje: uma volta por hora (e o painel também gera os do usuário ao abrir)
+  const gerarFixos = () => gerarLancamentosFixos().catch((erro) => console.error("Gastos fixos:", erro.message));
+  setInterval(gerarFixos, 60 * 60 * 1000);
+  gerarFixos();
   processarPendentes();
 }

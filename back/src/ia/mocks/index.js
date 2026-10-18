@@ -12,7 +12,9 @@ const ARQUIVOS = {
   TEXTO: "texto.json",
 };
 
-export function respostaMock(tipoDocumento) {
-  const json = readFileSync(new URL(ARQUIVOS[tipoDocumento], import.meta.url), "utf8");
+// Texto que fala de assinatura devolve um gasto fixo, para testar a repetição mensal
+export function respostaMock(tipoDocumento, texto = "") {
+  const arquivo = tipoDocumento === "TEXTO" && /netflix|assinatura/i.test(texto) ? "assinatura.json" : ARQUIVOS[tipoDocumento];
+  const json = readFileSync(new URL(arquivo, import.meta.url), "utf8");
   return JSON.parse(json.replaceAll("{{HOJE}}", hojeISO()));
 }

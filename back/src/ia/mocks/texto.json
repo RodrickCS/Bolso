@@ -9,6 +9,7 @@
       "categoria": "Restaurantes e delivery",
       "parcela_atual": null,
       "parcela_total": null,
+      "repete_todo_mes": false,
       "itens": []
     }
   ],

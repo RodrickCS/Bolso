@@ -46,7 +46,7 @@ function blocoConteudo(documento) {
 
 // Lê um documento e devolve { transacoes, observacao } já validado pelo schema
 export async function extrairTransacoes(documento, nomesCategorias, produtosConhecidos = []) {
-  if (config.ia.mock) return respostaMock(documento.tipo);
+  if (config.ia.mock) return respostaMock(documento.tipo, documento.texto ?? "");
 
   const modelo = documento.tipo === "TEXTO" ? config.ia.modeloRapido : config.ia.modeloDocumentos;
   const stream = clienteIa().beta.messages.stream({
@@ -84,9 +84,16 @@ export async function extrairTransacoes(documento, nomesCategorias, produtosConh
   return verificarResposta(resposta);
 }
 
-// Usado quando a memória de categorias não conhece o estabelecimento
+const PALAVRAS_DE_ASSINATURA = /netflix|spotify|disney|prime video|hbo|max|deezer|youtube premium|academia|smart ?fit|aluguel|condom[ií]nio|mensalidade|assinatura/i;
+
+// Usado quando a memória de categorias não conhece o estabelecimento.
+// Devolve { categoria, repete } (repete = gasto fixo mensal, como uma assinatura)
 export async function sugerirCategoria(usuarioId, descricao, nomesCategorias) {
-  if (config.ia.mock) return nomesCategorias.includes("Outros") ? "Outros" : nomesCategorias[0];
+  if (config.ia.mock) {
+    const repete = PALAVRAS_DE_ASSINATURA.test(descricao);
+    const padrao = nomesCategorias.includes("Outros") ? "Outros" : nomesCategorias[0];
+    return { categoria: repete && nomesCategorias.includes("Assinaturas") ? "Assinaturas" : padrao, repete };
+  }
 
   const resposta = await clienteIa().beta.messages.parse({
     model: config.ia.modeloRapido,
@@ -96,11 +103,11 @@ export async function sugerirCategoria(usuarioId, descricao, nomesCategorias) {
     messages: [
       {
         role: "user",
-        content: `Em qual categoria de um app brasileiro de controle de gastos entra este lançamento? "${descricao}"`,
+        content: `Em qual categoria de um app brasileiro de controle de gastos entra este lançamento, e ele se repete todo mês? "${descricao}"`,
       },
     ],
   });
   await registrarUso(usuarioId, "categorizar", resposta);
-  const { categoria } = verificarResposta(resposta);
-  return nomesCategorias.includes(categoria) ? categoria : "Outros";
+  const { categoria, repete_todo_mes } = verificarResposta(resposta);
+  return { categoria: nomesCategorias.includes(categoria) ? categoria : "Outros", repete: Boolean(repete_todo_mes) };
 }

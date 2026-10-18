@@ -25,6 +25,11 @@ export function esquemaExtracao(nomesCategorias) {
     categoria: z.string().describe(listaCategorias(nomesCategorias)),
     parcela_atual: z.number().nullable().describe("Número da parcela, ex: 3 em 3/10"),
     parcela_total: z.number().nullable().describe("Total de parcelas, ex: 10 em 3/10"),
+    repete_todo_mes: z
+      .boolean()
+      .describe(
+        "true só se o gasto se repete todo mês com o mesmo valor: assinatura (streaming, música, apps, academia), aluguel, condomínio, mensalidade, plano de celular ou internet. false para compras avulsas e para contas que mudam de valor todo mês (luz, água, gás)",
+      ),
     itens: z.array(item).describe("Itens do cupom fiscal; lista vazia para outros documentos"),
   });
 
@@ -38,4 +43,11 @@ export function esquemaExtracao(nomesCategorias) {
 }
 
 export const esquemaCategoria = (nomesCategorias) =>
-  z.object({ categoria: z.string().describe(listaCategorias(nomesCategorias)) });
+  z.object({
+    categoria: z.string().describe(listaCategorias(nomesCategorias)),
+    repete_todo_mes: z
+      .boolean()
+      .describe(
+        "true só se o gasto se repete todo mês com o mesmo valor: assinatura (streaming, música, apps, academia), aluguel, condomínio, mensalidade, plano de celular ou internet. false para compras avulsas e para contas que mudam de valor todo mês (luz, água, gás)",
+      ),
+  });

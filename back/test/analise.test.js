@@ -154,3 +154,17 @@ test("assinatura marcada para cancelar que cobrou de novo vira aviso", () => {
   assert.match(aviso.texto, /^Você marcou Spotify para cancelar, mas veio cobrança de R\$\u00a021,90 em 08\/10/);
   assert.deepEqual(montarAlertas({ mes: "2026-10", assinaturas: [assinatura], marcacoes: marcada("10-09") }), [], "cancelou depois da última cobrança");
 });
+
+test("previsão: gastos fixos entram pelo valor, e os que ainda vão vencer são somados", () => {
+  // Dia 10 de outubro: aluguel (fixo) de 1.500 e 300 de gastos do dia a dia; Netflix ainda vai vencer
+  const atuais = [
+    gasto("2026-10-01", 1500, "Aluguel", { recorrenciaId: 1 }),
+    gasto("2026-10-03", 300, "Mercado"),
+  ];
+  const fatos = calcularFatos({ mes: "2026-10", hoje: new Date("2026-10-10T12:00:00Z"), atuais, anteriores: [], historico: [], fixosPendentes: 44.9 });
+  // 1.500 + (300 / 10) * 31 + 44,90
+  assert.equal(
+    fatos.find((f) => f.tipo === "previsao").texto,
+    "No ritmo atual, você deve fechar o mês com cerca de R$\u00a02.474,90 em gastos, já contando R$\u00a044,90 de gastos fixos que ainda vão cair.",
+  );
+});

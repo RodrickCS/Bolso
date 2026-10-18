@@ -1,0 +1,17 @@
+{
+  "transacoes": [
+    {
+      "data": "{{HOJE}}",
+      "descricao": "Netflix",
+      "estabelecimento": "Netflix",
+      "valor": 44.9,
+      "tipo": "DESPESA",
+      "categoria": "Assinaturas",
+      "parcela_atual": null,
+      "parcela_total": null,
+      "repete_todo_mes": true,
+      "itens": []
+    }
+  ],
+  "observacao": null
+}

@@ -442,3 +442,56 @@ test("pergunte ao Bolso: a resposta vem dos números do banco", opcoes, async ()
   const outro = await cadastrar("outro-perguntas@teste.com");
   assert.match((await chamar(outro, "POST", "/perguntas", { pergunta: "quanto gastei?" })).corpo.resposta, /^Não achei gastos/);
 });
+
+test("gastos fixos: a IA marca, repete todo mês e a cobrança de verdade substitui o automático", opcoes, async () => {
+  const token = await cadastrar("fixos@teste.com");
+  const usuario = await prisma.usuario.findUnique({ where: { email: "fixos@teste.com" } });
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  // Texto que a IA (mock) reconhece como assinatura vira gasto fixo
+  await chamar(token, "POST", "/documentos", { texto: "assinei a netflix por 44,90" });
+  await processarPendentes();
+  let { recorrencias, totalMensal } = (await chamar(token, "GET", "/recorrencias")).corpo;
+  assert.deepEqual(recorrencias.map((r) => [r.descricao, Number(r.valor), r.criadaPorIa]), [["Netflix", 44.9, true]]);
+  assert.equal(totalMensal, 44.9);
+
+  // Lançamento à mão: a IA (mock) reconhece academia; o usuário pode dizer que não repete
+  const academia = (await chamar(token, "POST", "/transacoes", { valor: 99.9, data: hoje, descricao: "Academia Smart Fit" })).corpo;
+  assert.equal(academia.recorrencia?.criadaPorIa, true);
+  const lanche = (await chamar(token, "POST", "/transacoes", { valor: 25, data: hoje, descricao: "Lanche" })).corpo;
+  assert.equal(lanche.recorrencia, null);
+  const semRepetir = (await chamar(token, "POST", "/transacoes", { valor: 21.9, data: hoje, descricao: "Spotify", repetir: false })).corpo;
+  assert.equal(semRepetir.recorrencia, null);
+
+  // "Não repetir" logo depois de a IA marcar: o gasto fixo some de vez
+  const desfeito = (await chamar(token, "POST", `/transacoes/${academia.id}/repetir`, { repetir: false })).corpo;
+  assert.equal(desfeito.recorrencia, null);
+  assert.equal((await chamar(token, "GET", "/recorrencias")).corpo.recorrencias.length, 1);
+
+  // Um gasto fixo que venceu há 10 dias é lançado sozinho ao abrir o painel, uma vez só
+  const dezDiasAtras = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+  const venceu = new Date(Date.UTC(dezDiasAtras.getFullYear(), dezDiasAtras.getMonth(), dezDiasAtras.getDate()));
+  const aluguel = await prisma.recorrencia.create({
+    data: { usuarioId: usuario.id, descricao: "Aluguel", valor: 1500, dia: venceu.getUTCDate(), proximaData: venceu },
+  });
+  await chamar(token, "GET", "/painel");
+  await chamar(token, "GET", "/painel");
+  const automaticos = await prisma.transacao.findMany({ where: { recorrenciaId: aluguel.id } });
+  assert.deepEqual(automaticos.map((t) => [t.origem, t.data.toISOString().slice(0, 10), Number(t.valor)]), [["RECORRENTE", venceu.toISOString().slice(0, 10), 1500]]);
+  assert.ok((await prisma.recorrencia.findUnique({ where: { id: aluguel.id } })).proximaData > venceu);
+
+  // A cobrança de verdade (com reajuste) chega: o automático sai da soma, sem duplicar
+  await chamar(token, "POST", "/transacoes", { valor: 1590, data: venceu.toISOString().slice(0, 10), descricao: "Aluguel", repetir: false });
+  const [automatico] = await prisma.transacao.findMany({ where: { recorrenciaId: aluguel.id, origem: "RECORRENTE" } });
+  assert.ok(automatico.conciliadaComId, "o automático aponta para a cobrança de verdade");
+
+  // Editar dia, parar e apagar; outro usuário não mexe
+  const outro = await cadastrar("outro-fixos@teste.com");
+  assert.equal((await chamar(outro, "PATCH", `/recorrencias/${aluguel.id}`, { ativa: false })).status, 404);
+  assert.equal((await chamar(token, "PATCH", `/recorrencias/${aluguel.id}`, { dia: 10 })).corpo.dia, 10);
+  assert.equal((await chamar(token, "PATCH", `/recorrencias/${aluguel.id}`, { ativa: false })).corpo.ativa, false);
+  ({ totalMensal } = (await chamar(token, "GET", "/recorrencias")).corpo);
+  assert.equal(totalMensal, 44.9);
+  assert.equal((await chamar(token, "DELETE", `/recorrencias/${aluguel.id}`)).status, 204);
+  assert.equal(await prisma.transacao.count({ where: { descricao: "Aluguel", usuarioId: usuario.id } }), 2, "os lançamentos ficam");
+});

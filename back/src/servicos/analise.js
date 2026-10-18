@@ -163,7 +163,8 @@ export function montarAlertas({ mes, duplicadas = [], assinaturas = [], marcacoe
   return alertas;
 }
 
-export function calcularFatos({ mes, hoje, atuais, anteriores, historico, orcamentos = [], assinaturas = [] }) {
+// fixosPendentes: soma dos gastos fixos que ainda vão vencer neste mês
+export function calcularFatos({ mes, hoje, atuais, anteriores, historico, orcamentos = [], assinaturas = [], fixosPendentes = 0 }) {
   const fatos = [];
   const [ano, numero] = mes.split("-").map(Number);
   const diasNoMes = new Date(Date.UTC(ano, numero, 0)).getUTCDate();
@@ -191,10 +192,14 @@ export function calcularFatos({ mes, hoje, atuais, anteriores, historico, orcame
   }
 
   if (ehMesAtual && dia >= 5 && dia < diasNoMes && total > 0) {
+    // Gastos fixos não seguem o ritmo do dia a dia: entram pelo valor, e os que ainda vão vencer são somados
+    const fixos = soma(atuais.filter((t) => t.recorrenciaId));
+    const previsao = fixos + ((total - fixos) / dia) * diasNoMes + fixosPendentes;
+    const pendentes = fixosPendentes > 0 ? `, já contando ${reais(fixosPendentes)} de gastos fixos que ainda vão cair` : "";
     fatos.push({
       tipo: "previsao",
       prioridade: 60,
-      texto: `No ritmo atual, você deve fechar o mês com cerca de ${reais((total / dia) * diasNoMes)} em gastos.`,
+      texto: `No ritmo atual, você deve fechar o mês com cerca de ${reais(previsao)} em gastos${pendentes}.`,
     });
   }
 

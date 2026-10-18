@@ -40,7 +40,7 @@ export async function statusOrcamentos(usuarioId, mes) {
 async function despesas(usuarioId, inicio, fim) {
   const lista = await prisma.transacao.findMany({
     where: { usuarioId, tipo: "DESPESA", conciliadaComId: null, data: { gte: inicio, lt: fim } },
-    select: { id: true, data: true, valor: true, descricao: true, estabelecimento: true, parcelaTotal: true, tipo: true, categoria: { select: { nome: true } } },
+    select: { id: true, recorrenciaId: true, data: true, valor: true, descricao: true, estabelecimento: true, parcelaTotal: true, tipo: true, categoria: { select: { nome: true } } },
   });
   return lista.map((t) => ({ ...t, valor: Number(t.valor), categoria: t.categoria?.nome ?? null }));
 }
@@ -112,18 +112,25 @@ export async function fatosDoMes(usuarioId, mes) {
   const inicioAnterior = new Date(Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth() - 1, 1));
   const inicioHistorico = new Date(inicio.getTime() - 90 * UM_DIA);
 
-  const [atuais, anteriores, historico, orcamentos, assinaturas, compras] = await Promise.all([
+  const hoje = referencia(mes);
+  const amanha = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1));
+  const [atuais, anteriores, historico, orcamentos, assinaturas, compras, pendentes] = await Promise.all([
     despesas(usuarioId, inicio, fim),
     despesas(usuarioId, inicioAnterior, inicio),
     despesas(usuarioId, inicioHistorico, inicio),
     statusOrcamentos(usuarioId, mes),
     assinaturasDetectadas(usuarioId, mes),
     comprasDeProdutos(usuarioId),
+    prisma.recorrencia.aggregate({
+      where: { usuarioId, ativa: true, proximaData: { gte: amanha, lt: fim } },
+      _sum: { valor: true },
+    }),
   ]);
+  const fixosPendentes = Number(pendentes._sum.valor ?? 0);
   // Os alertas (cobrança em dobro, reajuste) têm cartão próprio no painel e não entram nas dicas,
   // que ficam guardadas por um dia: um aviso já respondido continuaria aparecendo ali
   return [
-    ...calcularFatos({ mes, hoje: referencia(mes), atuais, anteriores, historico, orcamentos, assinaturas }),
+    ...calcularFatos({ mes, hoje, atuais, anteriores, historico, orcamentos, assinaturas, fixosPendentes }),
     ...fatosDePrecos(resumirProdutos(compras), mes),
   ].sort((a, b) => b.prioridade - a.prioridade);
 }

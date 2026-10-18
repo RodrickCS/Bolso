@@ -9,6 +9,7 @@
       "categoria": "Mercado",
       "parcela_atual": null,
       "parcela_total": null,
+      "repete_todo_mes": false,
       "itens": [
         { "descricao": "CAFE PILAO TRAD 500G", "nome_canonico": "Café Pilão 500g", "quantidade": 1, "preco_total": 21.9 },
         { "descricao": "ARROZ T1 CAMIL 5KG", "nome_canonico": "Arroz Camil 5kg", "quantidade": 1, "preco_total": 27.9 },

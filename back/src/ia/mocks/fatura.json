@@ -9,6 +9,7 @@
       "categoria": "Mercado",
       "parcela_atual": null,
       "parcela_total": null,
+      "repete_todo_mes": false,
       "itens": []
     },
     {
@@ -20,6 +21,7 @@
       "categoria": "Transporte",
       "parcela_atual": null,
       "parcela_total": null,
+      "repete_todo_mes": false,
       "itens": []
     },
     {
@@ -31,6 +33,7 @@
       "categoria": "Assinaturas",
       "parcela_atual": null,
       "parcela_total": null,
+      "repete_todo_mes": false,
       "itens": []
     },
     {
@@ -42,6 +45,7 @@
       "categoria": "Compras",
       "parcela_atual": 2,
       "parcela_total": 5,
+      "repete_todo_mes": false,
       "itens": []
     }
   ],
