@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { ProvedorAvisos } from "../componentes/avisos";
 import { ProvedorSessao, useSessao } from "../lib/sessao";
 import { cores } from "../lib/tema";
 
@@ -32,8 +33,10 @@ function Rotas() {
 export default function Layout() {
   return (
     <ProvedorSessao>
-      <StatusBar style="dark" />
-      <Rotas />
+      <ProvedorAvisos>
+        <StatusBar style="dark" />
+        <Rotas />
+      </ProvedorAvisos>
     </ProvedorSessao>
   );
 }

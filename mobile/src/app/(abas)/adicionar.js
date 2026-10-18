@@ -6,7 +6,6 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -23,6 +22,7 @@ import { Aviso, Cartao } from "../../componentes/ui";
 import { aguardarDocumento, api } from "../../lib/api";
 import { PELO_TIPO } from "../../lib/contas";
 import { cores, espaco, raio } from "../../lib/tema";
+import { useAvisos } from "../../componentes/avisos";
 
 const TIPOS = [
   { valor: "CUPOM", rotulo: "Cupom fiscal", detalhe: "Nota de mercado, loja, restaurante", icone: "receipt-outline" },
@@ -64,6 +64,7 @@ async function fotoEmBase64(asset) {
 }
 
 export default function Adicionar() {
+  const { alerta, toast } = useAvisos();
   const [texto, setTexto] = useState("");
   const [ultimoTipo, setUltimoTipo] = useState("CUPOM");
   // Foto ou arquivo escolhido, esperando a pessoa dizer o que é: (tipo) => Promise do envio
@@ -98,6 +99,7 @@ export default function Adicionar() {
       await api.apagarDocumento(doc.id, comLancamentos);
       if (documento?.id === doc.id) setDocumento(null);
       await carregarHistorico();
+      toast(comLancamentos ? "Envio e lançamentos apagados" : "Envio tirado da lista");
     } catch (e) {
       setErro(e.message);
     }
@@ -107,6 +109,7 @@ export default function Adicionar() {
     try {
       await api.repetirTransacao(transacao.id, false);
       setDocumento(await api.documento(documento.id));
+      toast("Não vai mais repetir todo mês");
     } catch (e) {
       setErro(e.message);
     }
@@ -144,7 +147,7 @@ export default function Adicionar() {
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissao.granted) {
-      Alert.alert("Permissão necessária", daCamera ? "Libere a câmera nas configurações." : "Libere o acesso às fotos nas configurações.");
+      alerta("Permissão necessária", daCamera ? "Libere a câmera nas configurações." : "Libere o acesso às fotos nas configurações.");
       return;
     }
     const opcoes = { mediaTypes: ["images"], quality: 1 };

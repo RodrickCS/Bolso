@@ -1,12 +1,14 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../componentes/ui";
 import { api } from "../lib/api";
 import { PELO_TIPO, TIPOS_CONTA } from "../lib/contas";
 import { cores, espaco } from "../lib/tema";
+import { useAvisos } from "../componentes/avisos";
 
 export default function Contas() {
+  const { alerta, toast } = useAvisos();
   const [contas, setContas] = useState([]);
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("CREDITO");
@@ -26,6 +28,7 @@ export default function Contas() {
       await api.criarConta({ nome: nome.trim(), tipo });
       setNome("");
       await carregar();
+      toast("Conta adicionada");
     } catch (e) {
       setErro(e.message);
     } finally {
@@ -34,12 +37,17 @@ export default function Contas() {
   }
 
   function apagar(conta) {
-    Alert.alert("Excluir conta?", `"${conta.nome}" sai da lista. Os lançamentos dela continuam, só ficam sem conta.`, [
+    alerta("Excluir conta?", `"${conta.nome}" sai da lista. Os lançamentos dela continuam, só ficam sem conta.`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Excluir",
         style: "destructive",
-        onPress: () => api.apagarConta(conta.id).then(carregar).catch((e) => setErro(e.message)),
+        onPress: () =>
+          api
+            .apagarConta(conta.id)
+            .then(carregar)
+            .then(() => toast("Conta excluída"))
+            .catch((e) => setErro(e.message)),
       },
     ]);
   }

@@ -1,9 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { PELO_TIPO } from "../lib/contas";
 import { diaMes, reais } from "../lib/formato";
 import { cores, espaco } from "../lib/tema";
 import { Cartao } from "./ui";
+import { useAvisos } from "./avisos";
 
 export function CartaoAssistente({ assistente, carregando }) {
   if (!carregando && !assistente?.dicas?.length) return null;
@@ -159,6 +160,7 @@ export function ListaAlertas({ alertas, aoMarcar, aoAbrir }) {
 
 // Tocar numa assinatura abre as opções: vou cancelar, não é assinatura, desfazer
 export function ListaAssinaturas({ dados, aoMarcar, aoDesmarcar }) {
+  const { alerta } = useAvisos();
   if (!dados?.assinaturas.length) return null;
 
   function opcoes(a) {
@@ -170,7 +172,7 @@ export function ListaAssinaturas({ dados, aoMarcar, aoDesmarcar }) {
       botoes.push({ text: "Vou cancelar", onPress: () => aoMarcar(chave, "cancelar") });
     }
     botoes.push({ text: "Não é assinatura", style: "destructive", onPress: () => aoMarcar(chave, "ignorar") });
-    Alert.alert(
+    alerta(
       a.nome,
       a.marcacao === "cancelar"
         ? "Marcada para cancelar. Se vier outra cobrança, o Bolso avisa."

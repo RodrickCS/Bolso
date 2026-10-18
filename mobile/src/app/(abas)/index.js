@@ -11,6 +11,7 @@ import { mesAtual, reais } from "../../lib/formato";
 import { saudacao } from "../../lib/saudacao";
 import { useSessao } from "../../lib/sessao";
 import { cores, espaco, raio } from "../../lib/tema";
+import { useAvisos } from "../../componentes/avisos";
 
 function Resumo({ titulo, valor, destaque }) {
   return (
@@ -71,6 +72,7 @@ function Perguntar() {
 }
 
 export default function Painel() {
+  const { toast } = useAvisos();
   const topo = useSafeAreaInsets().top;
   const [mes, setMes] = useState(mesAtual());
   const [painel, setPainel] = useState(null);
@@ -116,9 +118,10 @@ export default function Painel() {
   );
 
   // Resposta a um alerta ou assinatura; recarrega só o que muda
-  async function responder(acao) {
+  async function responder(acao, mensagem) {
     try {
       await acao();
+      toast(mensagem);
       const [avisos, recorrentes] = await Promise.all([api.alertas(mes), api.assinaturas(mes)]);
       setAlertas(avisos);
       setAssinaturas(recorrentes);
@@ -126,8 +129,13 @@ export default function Painel() {
       setErro(e.message);
     }
   }
-  const marcar = (chave, tipo) => responder(() => api.marcar(chave, tipo));
-  const desmarcar = (chave) => responder(() => api.desmarcar(chave));
+  const MENSAGEM_MARCACAO = {
+    ok: "Aviso dispensado",
+    cancelar: "Marcada para cancelar. Se cobrar de novo, o Bolso avisa",
+    ignorar: "Tirada das cobranças recorrentes",
+  };
+  const marcar = (chave, tipo) => responder(() => api.marcar(chave, tipo), MENSAGEM_MARCACAO[tipo]);
+  const desmarcar = (chave) => responder(() => api.desmarcar(chave), "Marcação desfeita");
 
   async function puxarParaAtualizar() {
     setAtualizando(true);

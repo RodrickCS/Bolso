@@ -1,12 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Aviso, Botao, Campo, Cartao, Opcoes, Rotulo } from "../componentes/ui";
 import { api } from "../lib/api";
 import { dataBR, hojeISO, lerDataBR, lerValorBR, reais, valorParaCampo } from "../lib/formato";
 import { cores, espaco } from "../lib/tema";
+import { useAvisos } from "../componentes/avisos";
 
 const TIPOS = [
   { valor: "DESPESA", rotulo: "Gasto" },
@@ -23,6 +24,7 @@ const REPETIR_EDICAO = REPETIR_NOVO.slice(1);
 
 // Cria um lançamento à mão (sem IA) ou edita um existente (/lancamento?id=123)
 export default function Lancamento() {
+  const { alerta, toast } = useAvisos();
   const { id } = useLocalSearchParams();
   const editando = Boolean(id);
 
@@ -89,6 +91,7 @@ export default function Lancamento() {
           repetir: tipo === "DESPESA" ? (repetir ?? undefined) : false,
         });
       }
+      toast(editando ? "Lançamento atualizado" : "Lançamento adicionado");
       router.back();
     } catch (e) {
       setErro(e.message);
@@ -97,7 +100,7 @@ export default function Lancamento() {
   }
 
   function apagar() {
-    Alert.alert("Apagar lançamento?", `${original.descricao} · ${reais(original.valor)}`, [
+    alerta("Apagar lançamento?", `${original.descricao} · ${reais(original.valor)}`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Apagar",
@@ -105,6 +108,7 @@ export default function Lancamento() {
         onPress: async () => {
           try {
             await api.apagarTransacao(id);
+            toast("Lançamento apagado");
             router.back();
           } catch (e) {
             setErro(e.message);

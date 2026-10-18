@@ -1,11 +1,12 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Aviso, Botao, Campo, Cartao, Rotulo, Vazio } from "../componentes/ui";
 import { api } from "../lib/api";
 import { diaMes, lerValorBR, reais, valorParaCampo } from "../lib/formato";
 import { cores, espaco, raio } from "../lib/tema";
+import { useAvisos } from "../componentes/avisos";
 
 function Editar({ fixo, aoFechar, aoSalvar, aoApagar }) {
   const [valor, setValor] = useState(valorParaCampo(fixo.valor));
@@ -49,6 +50,7 @@ function Editar({ fixo, aoFechar, aoSalvar, aoApagar }) {
 
 // Gastos fixos: o que se repete todo mês (assinaturas, aluguel, mensalidades)
 export default function Fixos() {
+  const { alerta, toast } = useAvisos();
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState(null);
   const [editando, setEditando] = useState(null);
@@ -65,6 +67,7 @@ export default function Fixos() {
       setErro(null);
       await api.editarRecorrencia(fixo.id, mudancas);
       await carregar();
+      if (mudancas.ativa !== undefined) toast(mudancas.ativa ? "Voltou a repetir todo mês" : "Gasto fixo pausado");
     } catch (e) {
       setErro(e.message);
     }
@@ -74,10 +77,11 @@ export default function Fixos() {
     await api.editarRecorrencia(editando.id, mudancas);
     setEditando(null);
     await carregar();
+    toast("Gasto fixo atualizado");
   }
 
   function apagar(fixo) {
-    Alert.alert("Apagar gasto fixo?", "Os lançamentos que ele já fez continuam. Só os próximos deixam de ser criados.", [
+    alerta("Apagar gasto fixo?", "Os lançamentos que ele já fez continuam. Só os próximos deixam de ser criados.", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Apagar",
@@ -87,6 +91,7 @@ export default function Fixos() {
             await api.apagarRecorrencia(fixo.id);
             setEditando(null);
             await carregar();
+            toast("Gasto fixo apagado");
           } catch (e) {
             setErro(e.message);
           }

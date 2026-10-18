@@ -1,11 +1,12 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { Aviso, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { diaMes, mesAtual, reais } from "../../lib/formato";
 import { cores, espaco, raio } from "../../lib/tema";
+import { useAvisos } from "../../componentes/avisos";
 
 const ROTULO_ORIGEM = {
   MANUAL: "Manual",
@@ -60,6 +61,7 @@ function ItemGasto({ transacao, aoTocar, aoSegurar }) {
 }
 
 export default function Gastos() {
+  const { alerta, toast } = useAvisos();
   const [mes, setMes] = useState(mesAtual());
   const [transacoes, setTransacoes] = useState(null);
   const [erro, setErro] = useState(null);
@@ -82,7 +84,7 @@ export default function Gastos() {
   );
 
   function confirmarExclusao(transacao) {
-    Alert.alert("Apagar lançamento?", `${transacao.descricao} · ${reais(transacao.valor)}`, [
+    alerta("Apagar lançamento?", `${transacao.descricao} · ${reais(transacao.valor)}`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Apagar",
@@ -91,6 +93,7 @@ export default function Gastos() {
           try {
             await api.apagarTransacao(transacao.id);
             setTransacoes((lista) => lista.filter((t) => t.id !== transacao.id));
+            toast("Lançamento apagado");
           } catch (e) {
             setErro(e.message);
           }

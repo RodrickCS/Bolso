@@ -1,7 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { cores, espaco } from "../lib/tema";
 import { Cartao } from "./ui";
+import { useAvisos } from "./avisos";
 
 const ROTULO_TIPO = {
   TEXTO: "Texto",
@@ -36,6 +37,7 @@ function descricao(documento) {
 
 // Lista dos últimos envios, com o que aconteceu em cada um. Tocar abre as ações.
 export function HistoricoEnvios({ documentos, aoReenviarTexto, aoApagar }) {
+  const { alerta } = useAvisos();
   if (!documentos?.length) return null;
 
   function abrirAcoes(documento) {
@@ -55,7 +57,7 @@ export function HistoricoEnvios({ documentos, aoReenviarTexto, aoApagar }) {
     const mensagem = temLancamentos
       ? "Se a leitura saiu errada, apague o envio junto com os lançamentos e envie de novo."
       : documento.erro ?? undefined;
-    Alert.alert(titulo, mensagem, botoes);
+    alerta(titulo, mensagem, botoes);
   }
 
   return (
