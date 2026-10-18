@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <defs><mask id="m"><rect width="100" height="100" fill="white"/>
+    <path d="M26 46 V61 Q26 65.5 30 67.8 L48 78 Q50 79.2 52 78 L70 67.8 Q74 65.5 74 61 V46" stroke="black" stroke-width="2.6" fill="none" stroke-dasharray="4.5 3.5" stroke-linecap="round"/>
+    <path d="M26 41 H74" stroke="black" stroke-width="2.6" fill="none" stroke-dasharray="4.5 3.5" stroke-linecap="round"/>
+  </mask><clipPath id="c"><rect width="100" height="31"/></clipPath></defs>
+  <circle cx="60" cy="22" r="13" fill="#0b0b0b" clip-path="url(#c)"/>
+  <path d="M20 34 H80 V62 Q80 69 74 72.5 L54.5 83.5 Q50 86 45.5 83.5 L26 72.5 Q20 69 20 62 Z" fill="#0b0b0b" mask="url(#m)"/>
+</svg>

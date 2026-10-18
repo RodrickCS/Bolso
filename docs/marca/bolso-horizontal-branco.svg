@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100" viewBox="0 0 300 100"><g transform="translate(7 7) scale(0.86)">
+  <circle cx="60" cy="22" r="13" fill="#f5b82e" stroke="#d99a12" stroke-width="2"/>
+  <text x="60" y="28" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="17" fill="#d99a12" text-anchor="middle">$</text>
+  <path d="M20 34 H80 V62 Q80 69 74 72.5 L54.5 83.5 Q50 86 45.5 83.5 L26 72.5 Q20 69 20 62 Z" fill="#ffffff"/>
+  <path d="M26 46 V61 Q26 65.5 30 67.8 L48 78 Q50 79.2 52 78 L70 67.8 Q74 65.5 74 61 V46" stroke="#1a8a5c" stroke-width="2.2" fill="none" stroke-dasharray="4.5 3.5" stroke-linecap="round"/>
+  <path d="M26 41 H74" stroke="#1a8a5c" stroke-width="2.2" fill="none" stroke-dasharray="4.5 3.5" stroke-linecap="round"/></g>
+  <text x="122" y="68" font-family="-apple-system, Roboto, 'Segoe UI', Arial, sans-serif" font-weight="700" font-size="52" fill="#ffffff">Bolso</text>
+</svg>

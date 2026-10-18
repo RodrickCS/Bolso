@@ -137,7 +137,10 @@ mobile/
   src/app/                   rotas (Expo Router): entrar, (abas)/painel, gastos, adicionar, perfil,
                              lançamento, contas, orçamentos, produtos, produto
   src/componentes/           peças das telas (painel, histórico de envios, gráfico de preço)
-  src/lib/                   cliente da API, sessão, formatação, tema
+  src/lib/                   cliente da API, sessão, formatação, tema (design tokens), marca (desenho do logo)
+docs/
+  brand-guidelines.md        guia de marca: essência, cores, tipografia, logo, voz e componentes
+  marca/                     logo em SVG (ícone, horizontal, monocromático) e o quadro da marca
 ```
 
 ## Próximos passos
