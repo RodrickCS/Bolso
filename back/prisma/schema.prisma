@@ -64,6 +64,7 @@ model Usuario {
   resumos    ResumoAssistente[]
   marcacoes  Marcacao[]
   recorrencias Recorrencia[]
+  acoes      AcaoAssistente[]
 }
 
 model Conta {
@@ -263,4 +264,31 @@ model Recorrencia {
 
   @@index([ativa, proximaData])
   @@index([usuarioId])
+}
+
+enum SituacaoAcao {
+  PENDENTE
+  FEITA
+  CANCELADA
+  DESFEITA
+}
+
+// O que o assistente fez ou propôs pelo chat. Criar acontece na hora (FEITA, com como desfazer);
+// editar e apagar ficam PENDENTE até o usuário tocar em confirmar. Serve também de histórico.
+model AcaoAssistente {
+  id          Int          @id @default(autoincrement())
+  usuarioId   Int
+  tipo        String
+  situacao    SituacaoAcao @default(PENDENTE)
+  // Texto do cartão no chat e as linhas afetadas
+  resumo      String
+  detalhes    Json
+  // O que executar ao confirmar, e o estado anterior para desfazer (null quando não dá)
+  dados       Json
+  desfazer    Json?
+  criadoEm    DateTime     @default(now())
+  concluidaEm DateTime?
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, criadoEm])
 }

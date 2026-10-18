@@ -54,7 +54,7 @@ export default function LayoutAbas() {
       <Tabs.Screen
         name="perguntar"
         options={{
-          title: "Pergunte ao Bolso",
+          title: "Assistente do Bolso",
           tabBarLabel: "Assistente",
           tabBarIcon: icone("chatbubble-ellipses"),
           tabBarHideOnKeyboard: true,

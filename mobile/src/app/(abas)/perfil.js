@@ -20,6 +20,8 @@ const ROTULO_TAREFA = {
   categorizar: "Categorização",
   assistente: "Assistente",
   pergunta: "Pergunte ao Bolso",
+  conversa: "Assistente do chat",
+  "conversa:ferramentas": "Assistente do chat (ações)",
   nfce: "Cupons por QR Code",
 };
 

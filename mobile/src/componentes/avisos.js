@@ -83,7 +83,7 @@ function Toast({ toast }) {
     <Animated.View
       style={[
         estilos.toast,
-        { bottom: baixo + 72, opacity: opacidade, transform: [{ translateY: deslocamento }] },
+        { bottom: baixo + 136, opacity: opacidade, transform: [{ translateY: deslocamento }] },
         { pointerEvents: "none" },
       ]}
       accessibilityLiveRegion="polite"

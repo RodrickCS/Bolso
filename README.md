@@ -22,7 +22,11 @@ Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do c
 - **Conciliação:** o mesmo gasto que chega pelo cupom e pela fatura é contado uma vez só. A fatura vale como valor oficial e o cupom guarda os itens. O mesmo arquivo enviado de novo é recusado antes de chegar na IA, sem gastar créditos; e uma fatura ou extrato baixado de novo, com linhas repetidas, não duplica nada.
 - **Painel do mês** com gastos por categoria, entradas e saldo.
 - **Assistente do mês:** compara com o mês anterior, prevê o fechamento, aponta gastos fora do padrão e orçamentos estourando. As contas são feitas em código; a IA (Haiku) só escreve as dicas, no máximo uma vez por dia, por menos de US$ 0,001 cada. Sem IA, o cartão mostra os mesmos fatos em texto pronto.
-- **Pergunte ao Bolso:** um chat para perguntas como *"quanto gastei com Uber desde agosto?"* ou *"qual mês gastei mais com mercado?"*. A IA (Haiku) só traduz a pergunta em filtros (período, categoria, loja); as contas e a resposta são feitas em código com os seus lançamentos, então ela não inventa números. Cerca de US$ 0,0001 por pergunta, com limite de 40 por dia.
+- **Assistente que conversa e age:** no chat você pergunta (*"quanto gastei com Uber desde agosto?"*) e também pede (*"anota 30 de uber no Nubank"*, *"muda tudo da Shell para Transporte"*, *"apaga o iFood duplicado de sexta"*, *"cria um orçamento de 800 para Mercado"*, *"pausa a Netflix"*). A IA (Sonnet 5.5, esforço baixo) escolhe entre 11 ferramentas; quem executa é o servidor, com o seu login e as mesmas regras das telas.
+  - Criar algo novo acontece na hora, com botão **Desfazer** por 24 horas.
+  - Editar, apagar e mexer em orçamento, conta, gasto fixo ou assinatura viram uma **proposta**: um cartão no chat mostra o que vai mudar, e só o seu toque em Confirmar executa. A IA não tem como confirmar sozinha, a proposta vale por 30 minutos e cada uma executa uma vez só.
+  - Até 50 lançamentos por ação; excluir a conta e exportar dados ficam fora do chat. Descrições vindas de cupons e extratos são tratadas como dados, nunca como ordens.
+  - Tudo que o assistente faz fica registrado. Cerca de US$ 0,004 a 0,012 por mensagem, com limite de 40 mensagens por dia.
 - **Alertas de cobrança (sem IA):** cobrança em dobro, assinatura que aumentou (com quanto custa a mais por ano) e assinatura que cobrou de novo depois de você marcar "Vou cancelar". As cobranças recorrentes mostram o total por ano, e dá para marcar "não é assinatura".
 - **Gastos fixos que se repetem sozinhos:** ao ler um texto, comprovante ou boleto, a IA já diz se é um gasto fixo mensal (assinatura, aluguel, mensalidade), sem chamada extra. No dia do vencimento, o Bolso lança o gasto sozinho; quando a fatura chega, a cobrança real substitui o automático, mesmo com reajuste. Dá para desfazer ("Não repetir"), pausar e editar valor e dia. A previsão do fim do mês soma os fixos que ainda vão cair.
 - **Orçamentos por categoria** com medidor e alerta a partir de 80%.
@@ -109,11 +113,12 @@ O APK é gerado na nuvem pelo [EAS Build](https://docs.expo.dev/build/setup/), s
 |---|---|---|
 | `IA_MODELO_DOCUMENTOS` | `claude-opus-5-5` | Cupons, faturas, extratos e comprovantes |
 | `IA_MODELO_RAPIDO` | `claude-opus-5-5` | Gastos por texto e categorização. Para economizar: `claude-haiku-5-5` |
+| `IA_MODELO_ASSISTENTE` | `claude-sonnet-5-5` | Assistente do chat, com esforço baixo |
 
 O que já está no código para gastar pouco:
 - Cupons pelo QR Code: os itens vêm da SEFAZ e são lidos pelo código, sem a IA olhar foto.
 - O mesmo arquivo (ou a mesma NFC-e) enviado de novo é recusado antes de chegar na IA.
-- Cache de prompt: instruções e lista de produtos ficam no cache por 5 minutos, então vários cupons, faturas ou perguntas em sequência pagam só a parte nova. O custo registrado já conta gravação e leitura do cache.
+- Cache de prompt: instruções e lista de produtos ficam no cache por 5 minutos, então vários cupons, faturas ou perguntas em sequência pagam só a parte nova. No assistente, as 11 ferramentas e as instruções (cerca de 3.300 tokens) são iguais para todos e ficam no cache; cada volta do laço de ferramentas também reaproveita a conversa já enviada. O custo registrado já conta gravação e leitura do cache.
 - Fotos reduzidas para 1000 px no próprio celular antes do envio.
 - Frases simples de lugares conhecidos não chamam a IA.
 - Memória de categorias: um lançamento manual de um lugar já visto não chama a IA.
@@ -131,7 +136,8 @@ back/
   src/ia/                    cliente da API, schemas de saída, prompts e mocks
   src/servicos/              fila, importação, conciliação, memória de categorias, parser de texto,
                              análises do assistente (assinaturas, previsão, orçamentos), preços dos produtos
-  src/rotas/                 auth, documentos, transações, painel, cadastros, assistente, produtos, dados
+  src/servicos/ferramentas.js  ferramentas do assistente do chat; acoes.js: propostas, confirmar e desfazer
+  src/rotas/                 auth, documentos, transações, painel, cadastros, assistente, produtos, dados, conversa
   test/                      unitários + integração
 mobile/
   src/app/                   rotas (Expo Router): entrar, (abas)/painel, gastos, adicionar, perfil,

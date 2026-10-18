@@ -93,6 +93,12 @@ export const api = {
   marcar: (chave, tipo) => requisicao("/marcacoes", { metodo: "PUT", corpo: { chave, tipo } }),
   desmarcar: (chave) => requisicao(`/marcacoes?chave=${encodeURIComponent(chave)}`, { metodo: "DELETE" }),
   perguntar: (pergunta) => requisicao("/perguntas", { metodo: "POST", corpo: { pergunta }, limiteMs: 60_000 }),
+  // Assistente: uma mensagem com o histórico em texto; editar e apagar voltam como propostas para confirmar
+  conversar: (mensagem, historico, referencias) =>
+    requisicao("/conversa", { metodo: "POST", corpo: { mensagem, historico, referencias: referencias || undefined }, limiteMs: 90_000 }),
+  confirmarAcao: (id) => requisicao(`/conversa/acoes/${id}/confirmar`, { metodo: "POST" }),
+  cancelarAcao: (id) => requisicao(`/conversa/acoes/${id}/cancelar`, { metodo: "POST" }),
+  desfazerAcao: (id) => requisicao(`/conversa/acoes/${id}/desfazer`, { metodo: "POST" }),
 
   produtos: () => requisicao("/produtos"),
   produto: (id) => requisicao(`/produtos/${id}`),

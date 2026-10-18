@@ -29,7 +29,7 @@ export function CartaoAssistente({ assistente, carregando, aoPerguntar }) {
           </View>
         ))
       ) : (
-        <Text style={estilos.dicaTexto}>Pergunte sobre seus gastos: quanto foi no mercado, qual a maior compra, quanto sobrou.</Text>
+        <Text style={estilos.dicaTexto}>{'Pergunte ou peça: "quanto foi o mercado?", "anota 30 de uber", "muda a Renner para Roupas".'}</Text>
       )}
       <Pressable
         onPress={aoPerguntar}
@@ -37,7 +37,7 @@ export function CartaoAssistente({ assistente, carregando, aoPerguntar }) {
         accessibilityRole="button"
         accessibilityLabel="Pergunte ao Bolso"
       >
-        <Text style={estilos.perguntarTexto} numberOfLines={1}>Pergunte ao Bolso...</Text>
+        <Text style={estilos.perguntarTexto} numberOfLines={1}>Pergunte ou peça algo ao Bolso...</Text>
         <View style={estilos.perguntarEnviar}>
           <Ionicons name="arrow-up" size={16} color={cores.sobreMarca} />
         </View>

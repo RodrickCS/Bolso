@@ -6,6 +6,7 @@ import { tratarErros } from "./middlewares/erros.js";
 import { rotasAssistente } from "./rotas/assistente.js";
 import { rotasAuth } from "./rotas/auth.js";
 import { rotasCadastros } from "./rotas/cadastros.js";
+import { rotasConversa } from "./rotas/conversa.js";
 import { rotasDados } from "./rotas/dados.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasPainel } from "./rotas/painel.js";
@@ -44,6 +45,7 @@ app.use("/documentos", rotasDocumentos);
 app.use("/transacoes", rotasTransacoes);
 app.use("/produtos", rotasProdutos);
 app.use("/perguntas", rotasPerguntas);
+app.use("/conversa", rotasConversa);
 app.use("/recorrencias", rotasRecorrencias);
 
 app.use((_req, res) => res.status(404).json({ erro: "Rota não encontrada" }));

@@ -1,13 +1,18 @@
 import { Router } from "express";
 import { z } from "zod";
-import { sugerirCategoria } from "../ia/extrair.js";
-import { ErroHttp, assincrono, validar } from "../lib/erros.js";
+import { assincrono, validar } from "../lib/erros.js";
 import { intervaloDoMes, parametroMes } from "../lib/meses.js";
 import { prisma } from "../lib/prisma.js";
-import { categoriaLembrada, lembrarCategoria } from "../servicos/categorias.js";
-import { dataDoDia, inserirTransacao } from "../servicos/importacao.js";
-import { categoriaDeAssinatura, gerarLancamentosFixos, pararDeRepetir, repetirTodoMes } from "../servicos/recorrencias.js";
-import { garantirDono } from "./cadastros.js";
+import { dataDoDia } from "../servicos/importacao.js";
+import {
+  apagarLancamento,
+  buscarLancamento,
+  criarLancamento,
+  definirRepeticao,
+  detalhesLancamento,
+  editarLancamento,
+} from "../servicos/lancamentos.js";
+import { gerarLancamentosFixos } from "../servicos/recorrencias.js";
 
 export const rotasTransacoes = Router();
 
@@ -45,35 +50,6 @@ const edicao = z.object({
   contaId: z.number().int().positive().nullable().optional(),
 });
 
-const detalhes = {
-  categoria: { select: { id: true, nome: true } },
-  conta: { select: { id: true, nome: true } },
-  itens: { include: { produto: true } },
-  recorrencia: { select: { id: true, ativa: true, dia: true, criadaPorIa: true } },
-};
-
-async function buscarDoUsuario(id, usuarioId) {
-  const transacao = await prisma.transacao.findFirst({ where: { id: Number(id) || 0, usuarioId } });
-  if (!transacao) throw new ErroHttp(404, "Transação não encontrada");
-  return transacao;
-}
-
-// Categoria para um lançamento manual: memória primeiro, IA só se for novidade.
-// A mesma chamada à IA diz se é um gasto fixo mensal. Devolve { categoriaId, repete } (repete null = sem opinião).
-async function escolherCategoria(usuarioId, descricao) {
-  const lembrada = await categoriaLembrada(usuarioId, descricao);
-  if (lembrada) return { categoriaId: lembrada, repete: null };
-  try {
-    const categorias = await prisma.categoria.findMany({ where: { usuarioId } });
-    const { categoria, repete } = await sugerirCategoria(usuarioId, descricao, categorias.map((c) => c.nome));
-    return { categoriaId: categorias.find((c) => c.nome === categoria)?.id ?? null, repete };
-  } catch (erro) {
-    // Sem créditos ou API fora do ar não impede de salvar o gasto
-    console.error("Categorização:", erro.message);
-    return { categoriaId: null, repete: null };
-  }
-}
-
 rotasTransacoes.get(
   "/",
   assincrono(async (req, res) => {
@@ -83,7 +59,7 @@ rotasTransacoes.get(
     res.json(
       await prisma.transacao.findMany({
         where: { usuarioId: req.usuarioId, data: { gte: inicio, lt: fim }, categoriaId, contaId },
-        include: detalhes,
+        include: detalhesLancamento,
         orderBy: [{ data: "desc" }, { id: "desc" }],
       }),
     );
@@ -93,51 +69,23 @@ rotasTransacoes.get(
 rotasTransacoes.get(
   "/:id",
   assincrono(async (req, res) => {
-    const transacao = await buscarDoUsuario(req.params.id, req.usuarioId);
-    res.json(await prisma.transacao.findUnique({ where: { id: transacao.id }, include: detalhes }));
+    const transacao = await buscarLancamento(req.params.id, req.usuarioId);
+    res.json(await prisma.transacao.findUnique({ where: { id: transacao.id }, include: detalhesLancamento }));
   }),
 );
 
 rotasTransacoes.post(
   "/",
   assincrono(async (req, res) => {
-    const dados = validar(nova, req.body);
-    await garantirDono("categoria", dados.categoriaId, req.usuarioId);
-    await garantirDono("conta", dados.contaId, req.usuarioId);
-
-    const { repetir: pedido, ...campos } = dados;
-    const escolha = dados.categoriaId ? { categoriaId: dados.categoriaId, repete: null } : await escolherCategoria(req.usuarioId, dados.descricao);
-    const { categoriaId } = escolha;
-    const categoria = categoriaId && (await prisma.categoria.findUnique({ where: { id: categoriaId } }));
-    const tipo = dados.tipo ?? categoria?.tipo ?? "DESPESA";
-    // O pedido do usuário vale; senão a opinião da IA; senão a categoria Assinaturas
-    const repete = pedido ?? escolha.repete ?? categoriaDeAssinatura(categoria?.nome);
-    const criada = await prisma.$transaction(async (tx) => {
-      const nova = await inserirTransacao(tx, { ...campos, tipo, categoriaId, usuarioId: req.usuarioId, origem: "MANUAL" });
-      if (nova && repete) await repetirTodoMes(tx, nova, { criadaPorIa: pedido === undefined });
-      return nova;
-    });
-    if (dados.categoriaId) await lembrarCategoria(req.usuarioId, dados.descricao, categoriaId);
-    res.status(201).json(await prisma.transacao.findUnique({ where: { id: criada.id }, include: detalhes }));
+    res.status(201).json(await criarLancamento(req.usuarioId, validar(nova, req.body)));
   }),
 );
 
 rotasTransacoes.patch(
   "/:id",
   assincrono(async (req, res) => {
-    const atual = await buscarDoUsuario(req.params.id, req.usuarioId);
-    const dados = validar(edicao, req.body);
-    await garantirDono("categoria", dados.categoriaId, req.usuarioId);
-    await garantirDono("conta", dados.contaId, req.usuarioId);
-
-    const atualizada = await prisma.transacao.update({ where: { id: atual.id }, data: dados, include: detalhes });
-    // Correção do usuário vira regra: da próxima vez esse estabelecimento já vem na categoria certa
-    if (dados.categoriaId) {
-      await lembrarCategoria(req.usuarioId, atual.estabelecimento ?? atual.descricao, dados.categoriaId, {
-        sobrescrever: true,
-      });
-    }
-    res.json(atualizada);
+    await buscarLancamento(req.params.id, req.usuarioId);
+    res.json(await editarLancamento(req.usuarioId, req.params.id, validar(edicao, req.body)));
   }),
 );
 
@@ -145,19 +93,16 @@ rotasTransacoes.patch(
 rotasTransacoes.post(
   "/:id/repetir",
   assincrono(async (req, res) => {
-    const atual = await buscarDoUsuario(req.params.id, req.usuarioId);
+    await buscarLancamento(req.params.id, req.usuarioId);
     const { repetir: ligar } = validar(repetir, req.body);
-    if (ligar && atual.tipo !== "DESPESA") throw new ErroHttp(400, "Só gastos podem se repetir todo mês");
-    await prisma.$transaction((tx) => (ligar ? repetirTodoMes(tx, atual) : pararDeRepetir(tx, atual)));
-    res.json(await prisma.transacao.findUnique({ where: { id: atual.id }, include: detalhes }));
+    res.json(await definirRepeticao(req.usuarioId, req.params.id, ligar));
   }),
 );
 
 rotasTransacoes.delete(
   "/:id",
   assincrono(async (req, res) => {
-    const atual = await buscarDoUsuario(req.params.id, req.usuarioId);
-    await prisma.transacao.delete({ where: { id: atual.id } });
+    await apagarLancamento(req.usuarioId, req.params.id);
     res.status(204).end();
   }),
 );

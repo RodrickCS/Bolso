@@ -498,3 +498,200 @@ test("gastos fixos: a IA marca, repete todo mês e a cobrança de verdade substi
   assert.equal((await chamar(token, "DELETE", `/recorrencias/${aluguel.id}`)).status, 204);
   assert.equal(await prisma.transacao.count({ where: { descricao: "Aluguel", usuarioId: usuario.id } }), 2, "os lançamentos ficam");
 });
+
+test("assistente do chat: criar na hora, propor, confirmar, cancelar e desfazer", opcoes, async () => {
+  const token = await cadastrar("chat@teste.com");
+  const usuario = await prisma.usuario.findUnique({ where: { email: "chat@teste.com" } });
+  const conversar = (mensagem, extra = {}) => chamar(token, "POST", "/conversa", { mensagem, ...extra });
+
+  // Criar acontece na hora e vem com a opção de desfazer
+  const criado = (await conversar("gastei 45 na farmácia")).corpo;
+  assert.equal(criado.acoes.length, 1);
+  assert.equal(criado.acoes[0].situacao, "FEITA");
+  assert.equal(criado.acoes[0].podeDesfazer, true);
+  assert.match(criado.acoes[0].detalhes[0], /Farmácia · \d\d\/\d\d · R\$\s45,00/);
+  assert.match(criado.referencias, /^#\d+ Farmácia/);
+  assert.equal(await prisma.transacao.count({ where: { usuarioId: usuario.id } }), 1);
+
+  const desfeito = await chamar(token, "POST", `/conversa/acoes/${criado.acoes[0].id}/desfazer`);
+  assert.equal(desfeito.corpo.situacao, "DESFEITA");
+  assert.equal(await prisma.transacao.count({ where: { usuarioId: usuario.id } }), 0);
+  assert.equal((await chamar(token, "POST", `/conversa/acoes/${criado.acoes[0].id}/desfazer`)).status, 409);
+
+  // Apagar vira proposta: nada some até o usuário confirmar
+  await conversar("gastei 30 no uber");
+  await conversar("gastei 20 no uber ontem");
+  const proposta = (await conversar("apaga uber")).corpo;
+  assert.equal(proposta.acoes[0].situacao, "PENDENTE");
+  assert.equal(proposta.acoes[0].detalhes.length, 2);
+  assert.match(proposta.acoes[0].resumo, /Apagar 2 lançamentos, total R\$\s50,00/);
+  assert.equal(await prisma.transacao.count({ where: { usuarioId: usuario.id } }), 2);
+
+  // Outro usuário não confirma; confirmar duas vezes não executa duas vezes
+  const outro = await cadastrar("chat-outro@teste.com");
+  assert.equal((await chamar(outro, "POST", `/conversa/acoes/${proposta.acoes[0].id}/confirmar`)).status, 404);
+  const confirmada = await chamar(token, "POST", `/conversa/acoes/${proposta.acoes[0].id}/confirmar`);
+  assert.equal(confirmada.corpo.situacao, "FEITA");
+  assert.equal(confirmada.corpo.podeDesfazer, false, "apagar não tem volta");
+  assert.equal(await prisma.transacao.count({ where: { usuarioId: usuario.id } }), 0);
+  assert.equal((await chamar(token, "POST", `/conversa/acoes/${proposta.acoes[0].id}/confirmar`)).status, 409);
+
+  // Cancelar; e proposta velha não vale mais
+  await conversar("gastei 12 na padaria");
+  const cancelar = (await conversar("apaga padaria")).corpo.acoes[0];
+  assert.equal((await chamar(token, "POST", `/conversa/acoes/${cancelar.id}/cancelar`)).corpo.situacao, "CANCELADA");
+  assert.equal((await chamar(token, "POST", `/conversa/acoes/${cancelar.id}/confirmar`)).status, 409);
+  const velha = (await conversar("apaga padaria")).corpo.acoes[0];
+  await prisma.acaoAssistente.update({ where: { id: velha.id }, data: { criadoEm: new Date(Date.now() - 31 * 60 * 1000) } });
+  assert.equal((await chamar(token, "POST", `/conversa/acoes/${velha.id}/confirmar`)).status, 410);
+  assert.equal(await prisma.transacao.count({ where: { usuarioId: usuario.id } }), 1);
+
+  // Perguntas continuam funcionando pelo chat
+  const pergunta = (await conversar("quanto gastei este mês?")).corpo;
+  assert.match(pergunta.resposta, /12,00/);
+  assert.deepEqual(pergunta.acoes, []);
+});
+
+test("ferramentas do assistente: editar em lote, orçamento e conta, com erros que a IA consegue corrigir", opcoes, async () => {
+  const token = await cadastrar("ferramentas@teste.com");
+  const usuario = await prisma.usuario.findUnique({ where: { email: "ferramentas@teste.com" } });
+  const { criarFerramentas, rodarFerramenta } = await import("../src/servicos/ferramentas.js");
+  const { confirmarAcao, desfazerAcao } = await import("../src/servicos/acoes.js");
+  const ctx = { usuarioId: usuario.id, acoes: [], citados: new Map() };
+  const ferramentas = criarFerramentas(ctx);
+  const rodar = (nome, entrada) => rodarFerramenta(ferramentas.find((f) => f.nome === nome), entrada);
+
+  const shell1 = (await chamar(token, "POST", "/transacoes", { valor: 200, data: "2026-10-01", descricao: "Posto Shell" })).corpo;
+  const shell2 = (await chamar(token, "POST", "/transacoes", { valor: 180, data: "2026-10-09", descricao: "Posto Shell" })).corpo;
+  const alheio = (await chamar(await cadastrar("ferramentas-outro@teste.com"), "POST", "/transacoes", { valor: 5, data: "2026-10-01", descricao: "Café" })).corpo;
+
+  // Consulta acha os dois e devolve os ids
+  const achados = JSON.parse((await rodar("consultar_lancamentos", {
+    inicio: "2026-10-01", fim: "2026-10-31", tipo: "DESPESA", categorias: [], busca: "shell", conta: null, agrupar: "nenhum", ordenar: "recentes",
+  })).texto);
+  assert.equal(achados.total, 380);
+  assert.deepEqual(achados.lancamentos.map((t) => t.id), [shell2.id, shell1.id]);
+
+  // Erros voltam como texto para a IA corrigir: categoria que não existe, lançamento de outro usuário
+  const semCategoria = await rodar("editar_lancamentos", {
+    ids: [shell1.id], valor: null, descricao: null, data: null, categoria: "Gasolina", conta: null, repetir_todo_mes: null,
+  });
+  assert.equal(semCategoria.erro, true);
+  assert.match(semCategoria.texto, /Opções: .*Transporte/);
+  const deOutro = await rodar("apagar_lancamentos", { ids: [shell1.id, alheio.id] });
+  assert.equal(deOutro.erro, true);
+  assert.match(deOutro.texto, new RegExp(`não encontrados: ${alheio.id}`));
+
+  // Editar em lote: proposta, confirmação, e desfazer volta tudo como era
+  await rodar("editar_lancamentos", {
+    ids: [shell1.id, shell2.id], valor: null, descricao: null, data: null, categoria: "transporte", conta: null, repetir_todo_mes: null,
+  });
+  const edicao = ctx.acoes.at(-1);
+  assert.equal(edicao.situacao, "PENDENTE");
+  assert.equal(edicao.resumo, "Mudar categoria para Transporte em 2 lançamentos");
+  assert.equal((await prisma.transacao.findUnique({ where: { id: shell1.id }, include: { categoria: true } })).categoria?.nome ?? null, shell1.categoria?.nome ?? null);
+  await confirmarAcao(usuario.id, edicao.id);
+  const depois = await prisma.transacao.findMany({ where: { id: { in: [shell1.id, shell2.id] } }, include: { categoria: true } });
+  assert.deepEqual(depois.map((t) => t.categoria.nome), ["Transporte", "Transporte"]);
+  await desfazerAcao(usuario.id, edicao.id);
+  const voltou = await prisma.transacao.findUnique({ where: { id: shell1.id } });
+  assert.equal(voltou.categoriaId, shell1.categoria?.id ?? null);
+
+  // Orçamento novo é na hora; mudar um que existe vira proposta, e desfazer volta ao valor antigo
+  await rodar("definir_orcamento", { categoria: "Mercado", valor_mensal: 900 });
+  assert.equal(ctx.acoes.at(-1).situacao, "FEITA");
+  await rodar("definir_orcamento", { categoria: "Mercado", valor_mensal: 1100 });
+  const mudanca = ctx.acoes.at(-1);
+  assert.equal(mudanca.situacao, "PENDENTE");
+  assert.match(mudanca.resumo, /de R\$\s900,00 para R\$\s1\.100,00/);
+  await confirmarAcao(usuario.id, mudanca.id);
+  const orcamento = () => prisma.orcamento.findFirst({ where: { usuarioId: usuario.id } });
+  assert.equal(Number((await orcamento()).valorMensal), 1100);
+  await desfazerAcao(usuario.id, mudanca.id);
+  assert.equal(Number((await orcamento()).valorMensal), 900);
+
+  // Conta: criar na hora; renomear com confirmação e desfazer
+  await rodar("criar_conta", { nome: "Nubank", tipo: "CREDITO" });
+  assert.equal((await rodar("criar_conta", { nome: "nubank", tipo: "CREDITO" })).erro, true, "não duplica");
+  await rodar("alterar_conta", { conta: "nubank", acao: "renomear", novo_nome: "Nubank Roxinho" });
+  const renomear = ctx.acoes.at(-1);
+  await confirmarAcao(usuario.id, renomear.id);
+  assert.equal((await prisma.conta.findFirst({ where: { usuarioId: usuario.id } })).nome, "Nubank Roxinho");
+  await desfazerAcao(usuario.id, renomear.id);
+  assert.equal((await prisma.conta.findFirst({ where: { usuarioId: usuario.id } })).nome, "Nubank");
+
+  // Tudo fica registrado como histórico do assistente
+  assert.equal(await prisma.acaoAssistente.count({ where: { usuarioId: usuario.id } }), 5);
+});
+
+test("assistente com IA: ferramentas estritas, esforço baixo, cache e o laço de ferramentas", opcoes, async () => {
+  const http = await import("node:http");
+  const { config } = await import("../src/config.js");
+  const pedidos = [];
+  const fake = http.createServer((req, res) => {
+    let corpo = "";
+    req.on("data", (parte) => (corpo += parte));
+    req.on("end", () => {
+      pedidos.push({ cabecalhos: req.headers, corpo: JSON.parse(corpo) });
+      const primeira = pedidos.length === 1;
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({
+        id: `msg_${pedidos.length}`,
+        type: "message",
+        role: "assistant",
+        model: "claude-sonnet-5-5",
+        content: primeira
+          ? [{ type: "tool_use", id: "toolu_1", name: "criar_lancamento", input: {
+              tipo: "DESPESA", valor: 45, descricao: "Farmácia", data: null, categoria: "Saúde", conta: null, repetir_todo_mes: null,
+            } }]
+          : [{ type: "text", text: "Anotado: Farmácia, R$ 45,00 em Saúde." }],
+        stop_reason: primeira ? "tool_use" : "end_turn",
+        stop_sequence: null,
+        usage: { input_tokens: 120, output_tokens: 30, cache_creation_input_tokens: 0, cache_read_input_tokens: 2000 },
+      }));
+    });
+  });
+  await new Promise((pronto) => fake.listen(0, pronto));
+  Object.assign(process.env, { ANTHROPIC_BASE_URL: `http://localhost:${fake.address().port}`, ANTHROPIC_API_KEY: "teste" });
+  config.ia.mock = false;
+  try {
+    const token = await cadastrar("chat-ia@teste.com");
+    const { corpo } = await chamar(token, "POST", "/conversa", {
+      mensagem: "comprei remédio, 45 reais",
+      historico: [{ papel: "bolso", texto: "Oi!" }, { papel: "usuario", texto: "quanto gastei?" }, { papel: "bolso", texto: "R$ 10,00." }],
+      referencias: "#999 Uber · 17/10 · R$ 23,15",
+    });
+    assert.equal(corpo.resposta, "Anotado: Farmácia, R$ 45,00 em Saúde.");
+    assert.equal(corpo.acoes[0].situacao, "FEITA");
+    assert.match(corpo.acoes[0].detalhes[0], /Farmácia .* Saúde/);
+
+    const [primeiro, segundo] = pedidos;
+    assert.equal(primeiro.corpo.model, "claude-sonnet-5-5");
+    assert.deepEqual(primeiro.corpo.output_config, { effort: "low" });
+    assert.equal(primeiro.corpo.fallbacks, "default");
+    assert.match(primeiro.cabecalhos["anthropic-beta"], /server-side-fallback-2026-07-01/);
+    assert.deepEqual(primeiro.corpo.cache_control, { type: "ephemeral" });
+    assert.deepEqual(primeiro.corpo.system[0].cache_control, { type: "ephemeral" });
+    assert.match(primeiro.corpo.system[1].text, /Categorias de gasto: .*Saúde/);
+    for (const ferramenta of primeiro.corpo.tools) {
+      assert.equal(ferramenta.strict, true, ferramenta.name);
+      assert.equal(ferramenta.input_schema.additionalProperties, false, ferramenta.name);
+      assert.equal(ferramenta.input_schema.$schema, undefined, ferramenta.name);
+      assert.deepEqual(ferramenta.input_schema.required, Object.keys(ferramenta.input_schema.properties), ferramenta.name);
+    }
+    // Histórico começa pelo usuário; as referências vão junto da mensagem nova
+    assert.deepEqual(primeiro.corpo.messages.map((m) => m.role), ["user", "assistant", "user"]);
+    assert.match(primeiro.corpo.messages.at(-1).content[0].text, /#999 Uber/);
+    // A segunda volta leva o resultado da ferramenta
+    const resultado = segundo.corpo.messages.at(-1).content[0];
+    assert.equal(resultado.type, "tool_result");
+    assert.match(JSON.stringify(resultado.content), /Criado #\d+/);
+
+    const usuario = await prisma.usuario.findUnique({ where: { email: "chat-ia@teste.com" } });
+    const usos = await prisma.usoIa.findMany({ where: { usuarioId: usuario.id }, orderBy: { id: "asc" } });
+    assert.deepEqual(usos.map((u) => u.tarefa), ["conversa", "conversa:ferramentas"]);
+  } finally {
+    config.ia.mock = true;
+    fake.close();
+  }
+});
