@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { api } from "../lib/api";
-import { reais } from "../lib/formato";
-import { cores, espaco, raio } from "../lib/tema";
+import { api } from "../../lib/api";
+import { reais } from "../../lib/formato";
+import { cores, espaco, raio } from "../../lib/tema";
 
 const SUGESTOES = [
   "Quanto gastei este mês?",
@@ -153,6 +153,8 @@ const estilos = StyleSheet.create({
     gap: espaco.p,
     padding: espaco.p,
     paddingHorizontal: espaco.m,
+    // Folga para o botão "+" da barra de abas, que fica saltado para cima
+    paddingBottom: espaco.g,
     borderTopWidth: 1,
     borderTopColor: cores.borda,
     backgroundColor: cores.superficie,

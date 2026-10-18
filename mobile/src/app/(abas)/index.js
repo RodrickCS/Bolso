@@ -1,73 +1,187 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CartaoAssistente, ListaAlertas, ListaAssinaturas, ListaContas, ListaOrcamentos } from "../../componentes/painel";
+import { AreaMeses, Rosca, fatiasDoMes, iconeCategoria } from "../../componentes/graficos";
+import { CartaoAssistente, ContasECartoes, ListaAlertas, ListaAssinaturas, ListaOrcamentos } from "../../componentes/painel";
 import { CartaoPrecos } from "../../componentes/precos";
-import { Aviso, Cartao, SeletorMes, Vazio } from "../../componentes/ui";
+import { Aviso, Cartao, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
-import { mesAtual, reais } from "../../lib/formato";
+import { diaMes, mesAtual, nomeDoMes, reais, somarMes } from "../../lib/formato";
 import { saudacao } from "../../lib/saudacao";
 import { useSessao } from "../../lib/sessao";
 import { cores, espaco, raio } from "../../lib/tema";
 import { useAvisos } from "../../componentes/avisos";
 
-function Resumo({ titulo, valor, destaque }) {
+const percentualBR = (valor) => `${valor.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+const soMes = (mes) => nomeDoMes(mes).split(" ")[0].toLowerCase();
+
+// Topo: inicial do nome e a saudação do momento
+function Cabecalho() {
+  const { usuario } = useSessao();
+  const { titulo, frase } = saudacao(usuario?.nome);
+  const inicial = usuario?.nome?.trim()[0]?.toUpperCase() ?? "B";
   return (
-    <Cartao style={[estilos.resumo, destaque && estilos.resumoDestaque]}>
-      <Text style={estilos.resumoTitulo}>{titulo}</Text>
-      <Text style={[estilos.resumoValor, destaque && estilos.resumoValorDestaque]} numberOfLines={1} adjustsFontSizeToFit>
-        {valor}
-      </Text>
+    <View style={estilos.cabecalho}>
+      <View style={estilos.avatar}>
+        <Text style={estilos.avatarTexto}>{inicial}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={estilos.saudacao} numberOfLines={1}>{titulo}</Text>
+        <Text style={estilos.frase} numberOfLines={2}>{frase}</Text>
+      </View>
+    </View>
+  );
+}
+
+function SeletorMes({ mes, aoMudar }) {
+  return (
+    <View style={estilos.seletor}>
+      <Pressable onPress={() => aoMudar(somarMes(mes, -1))} hitSlop={12} style={estilos.seletorSeta} accessibilityLabel="Mês anterior">
+        <Ionicons name="chevron-back" size={18} color={cores.textoSecundario} />
+      </Pressable>
+      <Text style={estilos.seletorTexto}>{nomeDoMes(mes)}</Text>
+      <Pressable onPress={() => aoMudar(somarMes(mes, 1))} hitSlop={12} style={estilos.seletorSeta} accessibilityLabel="Próximo mês">
+        <Ionicons name="chevron-forward" size={18} color={cores.textoSecundario} />
+      </Pressable>
+    </View>
+  );
+}
+
+// Comparação com o mês anterior. No mês em andamento a conta seria injusta (mês pela metade
+// contra mês inteiro), então mostra o total do mês passado como referência.
+function Comparacao({ painel, emAndamento }) {
+  const anterior = painel.historico.at(-2);
+  if (!anterior?.despesas) return null;
+  const nome = soMes(anterior.mes);
+
+  if (emAndamento && painel.despesas < anterior.despesas) {
+    return <Text style={estilos.comparacao}>Em {nome} inteiro foram {reais(anterior.despesas)}</Text>;
+  }
+  const variacao = ((painel.despesas - anterior.despesas) / anterior.despesas) * 100;
+  const subiu = variacao > 0;
+  const texto = emAndamento
+    ? `Já passou ${nome} inteiro (${reais(anterior.despesas)})`
+    : `${percentualBR(Math.abs(variacao))} ${subiu ? "a mais" : "a menos"} que ${nome}`;
+  return (
+    <View style={estilos.comparacaoLinha}>
+      {/* Gastar mais é ruim: seta para cima em vermelho, para baixo em verde. O texto diz o mesmo. */}
+      <Ionicons name={subiu ? "trending-up" : "trending-down"} size={16} color={subiu ? cores.critico : cores.marca} />
+      <Text style={estilos.comparacao}>{texto}</Text>
+    </View>
+  );
+}
+
+function Mini({ icone, rotulo, valor }) {
+  return (
+    <View style={estilos.mini}>
+      <View style={estilos.miniTopo}>
+        <View style={estilos.miniIcone}>
+          <Ionicons name={icone} size={14} color={cores.marca} />
+        </View>
+        <Text style={estilos.miniRotulo}>{rotulo}</Text>
+      </View>
+      <Text style={estilos.miniValor} numberOfLines={1} adjustsFontSizeToFit>{valor}</Text>
+    </View>
+  );
+}
+
+// Cartão principal: o gasto do mês em destaque, entradas e saldo, e a curva dos últimos 6 meses
+function Destaque({ painel, mes }) {
+  return (
+    <Cartao style={estilos.destaque}>
+      <Text style={estilos.destaqueRotulo}>Gastos de {soMes(mes)}</Text>
+      <Text style={estilos.destaqueValor} numberOfLines={1} adjustsFontSizeToFit>{reais(painel.despesas)}</Text>
+      <Comparacao painel={painel} emAndamento={mes === mesAtual()} />
+      <View style={estilos.minis}>
+        <Mini icone="arrow-down" rotulo="Entradas" valor={reais(painel.receitas)} />
+        <Mini icone="wallet-outline" rotulo="Saldo" valor={reais(painel.saldo)} />
+      </View>
+      {painel.historico.some((h) => h.despesas > 0) && (
+        <View style={estilos.grafico}>
+          <Text style={estilos.graficoTitulo}>Gastos nos últimos 6 meses</Text>
+          <AreaMeses historico={painel.historico} />
+        </View>
+      )}
     </Cartao>
   );
 }
 
-// Barra horizontal de uma categoria: comprimento proporcional à maior categoria,
-// valor e percentual escritos ao lado (a cor nunca é a única informação)
-function LinhaCategoria({ item, maior }) {
-  const largura = maior > 0 ? Math.max((item.total / maior) * 100, 2) : 0;
+// Parte do todo: rosca com até 6 fatias e a legenda com nome e percentual de cada uma
+function GastosPorCategoria({ painel, mes }) {
+  const fatias = fatiasDoMes(painel.porCategoria, painel.despesas);
   return (
-    <View style={estilos.linha} accessible accessibilityLabel={`${item.categoria}: ${reais(item.total)}, ${item.percentual}%`}>
+    <Cartao style={{ gap: espaco.m }}>
       <View style={estilos.linhaTopo}>
-        <Text style={estilos.linhaNome} numberOfLines={1}>{item.categoria}</Text>
-        <Text style={estilos.linhaValor}>{reais(item.total)}</Text>
+        <Text style={estilos.secao}>Gastos por categoria</Text>
+        <Pressable onPress={() => router.push("/gastos")} hitSlop={10} accessibilityRole="button">
+          <Text style={estilos.link}>Ver tudo</Text>
+        </Pressable>
       </View>
-      <View style={estilos.linhaBarraArea}>
-        <View style={estilos.trilho}>
-          <View style={[estilos.barra, { width: `${largura}%` }]} />
+      {fatias.length === 0 ? (
+        <Vazio icone="receipt-outline" texto="Nenhum gasto neste mês. Toque no + para adicionar um cupom, uma fatura ou digitar um gasto." />
+      ) : (
+        <View style={estilos.categorias}>
+          <Rosca fatias={fatias} total={painel.despesas} legenda={soMes(mes)} tamanho={140} />
+          <View style={estilos.legendaCategorias}>
+            {fatias.map((f) => (
+              <View
+                key={f.chave}
+                style={estilos.legendaLinha}
+                accessible
+                accessibilityLabel={`${f.nome}: ${reais(f.total)}, ${percentualBR(f.percentual)}`}
+              >
+                <View style={[estilos.ponto, { backgroundColor: f.cor }]} />
+                <Text style={estilos.legendaNome} numberOfLines={1}>{f.nome}</Text>
+                <Text style={estilos.legendaPercentual}>{Math.round(f.percentual)}%</Text>
+              </View>
+            ))}
+          </View>
         </View>
-        <Text style={estilos.percentual}>{item.percentual.toLocaleString("pt-BR")}%</Text>
+      )}
+    </Cartao>
+  );
+}
+
+function TransacoesRecentes({ transacoes }) {
+  // As cópias conciliadas (o mesmo gasto que veio de novo na fatura) não aparecem duas vezes
+  const recentes = transacoes.filter((t) => !t.conciliadaComId).slice(0, 5);
+  if (!recentes.length) return null;
+  return (
+    <Cartao style={{ gap: 12 }}>
+      <View style={estilos.linhaTopo}>
+        <Text style={estilos.secao}>Transações recentes</Text>
+        <Pressable onPress={() => router.push("/gastos")} hitSlop={10} accessibilityRole="button">
+          <Text style={estilos.link}>Ver todas</Text>
+        </Pressable>
       </View>
-    </View>
-  );
-}
-
-// Boas-vindas no topo, no lugar do título da tela. Frase pronta escolhida pelo horário e pelo dia.
-function BoasVindas() {
-  const { usuario } = useSessao();
-  const { titulo, frase } = saudacao(usuario?.nome);
-  return (
-    <View style={estilos.boasVindas}>
-      <Text style={estilos.boasVindasTitulo}>{titulo}</Text>
-      <Text style={estilos.boasVindasFrase}>{frase}</Text>
-    </View>
-  );
-}
-
-// Atalho para o chat, com cara de campo de busca
-function Perguntar() {
-  return (
-    <Pressable
-      onPress={() => router.push("/perguntar")}
-      style={({ pressed }) => [estilos.perguntar, pressed && { opacity: 0.7 }]}
-      accessibilityRole="button"
-      accessibilityLabel="Pergunte ao Bolso"
-    >
-      <Ionicons name="chatbubble-ellipses-outline" size={20} color={cores.marca} />
-      <Text style={estilos.perguntarTexto} numberOfLines={1}>Pergunte ao Bolso sobre seus gastos</Text>
-    </Pressable>
+      {recentes.map((t) => {
+        const receita = t.tipo === "RECEITA";
+        return (
+          <Pressable
+            key={t.id}
+            onPress={() => router.push(`/lancamento?id=${t.id}`)}
+            style={({ pressed }) => [estilos.transacao, pressed && { opacity: 0.6 }]}
+            accessibilityRole="button"
+          >
+            <View style={[estilos.transacaoIcone, receita && { backgroundColor: cores.marcaSuave }]}>
+              <Ionicons name={iconeCategoria(t.categoria?.nome)} size={18} color={receita ? cores.marca : cores.textoSecundario} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={estilos.transacaoNome} numberOfLines={1}>{t.descricao}</Text>
+              <Text style={estilos.transacaoDetalhe} numberOfLines={1}>
+                {[t.categoria?.nome, diaMes(t.data), t.conta?.nome].filter(Boolean).join(" · ")}
+              </Text>
+            </View>
+            <Text style={[estilos.transacaoValor, receita && { color: cores.marca }]}>
+              {receita ? "+ " : "− "}
+              {reais(t.valor)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Cartao>
   );
 }
 
@@ -76,6 +190,7 @@ export default function Painel() {
   const topo = useSafeAreaInsets().top;
   const [mes, setMes] = useState(mesAtual());
   const [painel, setPainel] = useState(null);
+  const [transacoes, setTransacoes] = useState([]);
   const [orcamentos, setOrcamentos] = useState([]);
   const [assinaturas, setAssinaturas] = useState(null);
   const [assistente, setAssistente] = useState(null);
@@ -96,13 +211,15 @@ export default function Painel() {
     api.produtos().then(setPrecos).catch(() => setPrecos(null));
     try {
       setErro(null);
-      const [resumo, listaOrcamentos, recorrentes, avisos] = await Promise.all([
+      const [resumo, lista, listaOrcamentos, recorrentes, avisos] = await Promise.all([
         api.painel(mes),
+        api.transacoes(mes),
         api.orcamentos(mes),
         api.assinaturas(mes),
         api.alertas(mes),
       ]);
       setPainel(resumo);
+      setTransacoes(lista);
       setOrcamentos(listaOrcamentos);
       setAssinaturas(recorrentes);
       setAlertas(avisos);
@@ -143,46 +260,33 @@ export default function Painel() {
     setAtualizando(false);
   }
 
-  const maior = painel?.porCategoria[0]?.total ?? 0;
+  // Ao trocar de mês, os dados do mês anterior não aparecem com o nome do novo
+  const doMes = painel?.mes === mes ? painel : null;
 
   return (
     <ScrollView
-      contentContainerStyle={[estilos.conteudo, { paddingTop: topo + espaco.g }]}
+      contentContainerStyle={[estilos.conteudo, { paddingTop: topo + espaco.m }]}
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={puxarParaAtualizar} tintColor={cores.marca} />}
     >
-      <BoasVindas />
-      <Perguntar />
+      <Cabecalho />
       <SeletorMes mes={mes} aoMudar={setMes} />
       <Aviso mensagem={erro} />
-      <ListaAlertas alertas={alertas} aoMarcar={marcar} aoAbrir={(id) => router.push(`/lancamento?id=${id}`)} />
 
-      <CartaoAssistente
-        assistente={assistente?.mes === mes ? assistente : null}
-        carregando={pensando && assistente?.mes !== mes}
-      />
-
-      {painel && (
+      {!doMes ? (
+        !erro && <ActivityIndicator style={{ marginTop: 48 }} color={cores.marca} />
+      ) : (
         <>
-          <Resumo titulo="Gastos do mês" valor={reais(painel.despesas)} destaque />
-          <View style={estilos.resumos}>
-            <Resumo titulo="Entradas" valor={reais(painel.receitas)} />
-            <Resumo titulo="Saldo" valor={reais(painel.saldo)} />
-          </View>
-
+          <Destaque painel={doMes} mes={mes} />
+          <ListaAlertas alertas={alertas} aoMarcar={marcar} aoAbrir={(id) => router.push(`/lancamento?id=${id}`)} />
+          <CartaoAssistente
+            assistente={assistente?.mes === mes ? assistente : null}
+            carregando={pensando && assistente?.mes !== mes}
+            aoPerguntar={() => router.push("/perguntar")}
+          />
+          <GastosPorCategoria painel={doMes} mes={mes} />
           <ListaOrcamentos orcamentos={orcamentos} aoEditar={() => router.push("/orcamentos")} />
-
-          <Text style={estilos.secao}>Para onde foi o dinheiro</Text>
-          {painel.porCategoria.length === 0 ? (
-            <Vazio icone="receipt-outline" texto="Nenhum gasto neste mês. Adicione um cupom, uma fatura ou digite um gasto." />
-          ) : (
-            <Cartao style={estilos.categorias}>
-              {painel.porCategoria.map((item) => (
-                <LinhaCategoria key={item.categoriaId ?? "sem"} item={item} maior={maior} />
-              ))}
-            </Cartao>
-          )}
-
-          <ListaContas porConta={painel.porConta} />
+          <TransacoesRecentes transacoes={transacoes} />
+          <ContasECartoes porConta={doMes.porConta} aoGerenciar={() => router.push("/contas")} />
           <ListaAssinaturas dados={assinaturas} aoMarcar={marcar} aoDesmarcar={desmarcar} />
           <CartaoPrecos dados={precos} aoTocar={() => router.push("/produtos")} />
         </>
@@ -192,42 +296,50 @@ export default function Painel() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: espaco.m, gap: 12 },
-  boasVindas: { gap: 4, marginBottom: espaco.p },
-  boasVindasTitulo: { fontSize: 28, fontWeight: "700", color: cores.texto },
-  boasVindasFrase: { fontSize: 16, lineHeight: 22, color: cores.textoSecundario },
-  perguntar: {
+  conteudo: { padding: espaco.m, gap: 14, paddingBottom: 40 },
+  cabecalho: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: cores.marca, alignItems: "center", justifyContent: "center" },
+  avatarTexto: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  saudacao: { fontSize: 18, fontWeight: "700", color: cores.texto },
+  frase: { fontSize: 13, lineHeight: 18, color: cores.textoSecundario },
+  seletor: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    minHeight: 48,
-    paddingHorizontal: espaco.m,
-    borderRadius: raio,
+    alignSelf: "center",
+    gap: 4,
+    backgroundColor: cores.superficie,
     borderWidth: 1,
     borderColor: cores.borda,
-    backgroundColor: cores.superficie,
+    borderRadius: 999,
+    paddingHorizontal: 4,
   },
-  perguntarTexto: { flex: 1, fontSize: 15, color: cores.textoSuave },
-  resumos: { flexDirection: "row", gap: 12 },
-  resumo: { flex: 1, gap: 4 },
-  resumoDestaque: { paddingVertical: espaco.g },
-  resumoTitulo: { fontSize: 14, color: cores.textoSecundario },
-  resumoValor: { fontSize: 20, fontWeight: "700", color: cores.texto },
-  resumoValorDestaque: { fontSize: 36 },
-  secao: { fontSize: 17, fontWeight: "700", color: cores.texto, marginTop: espaco.p },
-  categorias: { gap: espaco.m },
-  linha: { gap: 6 },
-  linhaTopo: { flexDirection: "row", justifyContent: "space-between", gap: espaco.p },
-  linhaNome: { fontSize: 15, color: cores.texto, flex: 1 },
-  linhaValor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
-  linhaBarraArea: { flexDirection: "row", alignItems: "center", gap: espaco.p },
-  // Barra fina com ponta arredondada e base reta, crescendo da esquerda
-  barra: {
-    height: 10,
-    backgroundColor: cores.marca,
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
-  },
-  trilho: { flex: 1 },
-  percentual: { fontSize: 13, color: cores.textoSecundario, minWidth: 48, textAlign: "right", fontVariant: ["tabular-nums"] },
+  seletorSeta: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  seletorTexto: { fontSize: 15, fontWeight: "600", color: cores.texto, minWidth: 140, textAlign: "center" },
+  destaque: { gap: 6, borderRadius: raio * 1.5, paddingVertical: espaco.g },
+  destaqueRotulo: { fontSize: 14, color: cores.textoSecundario },
+  destaqueValor: { fontSize: 44, fontWeight: "700", color: cores.texto, letterSpacing: -0.5 },
+  comparacaoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  comparacao: { fontSize: 14, color: cores.textoSecundario },
+  minis: { flexDirection: "row", gap: 10, marginTop: espaco.p },
+  mini: { flex: 1, gap: 6, backgroundColor: cores.fundo, borderRadius: raio, padding: 12 },
+  miniTopo: { flexDirection: "row", alignItems: "center", gap: 8 },
+  miniIcone: { width: 26, height: 26, borderRadius: 13, backgroundColor: cores.marcaSuave, alignItems: "center", justifyContent: "center" },
+  miniRotulo: { fontSize: 13, color: cores.textoSecundario },
+  miniValor: { fontSize: 18, fontWeight: "700", color: cores.texto },
+  grafico: { marginTop: espaco.m, gap: 4 },
+  graficoTitulo: { fontSize: 13, fontWeight: "600", color: cores.textoSecundario },
+  linhaTopo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: espaco.p },
+  secao: { fontSize: 17, fontWeight: "700", color: cores.texto },
+  link: { fontSize: 15, fontWeight: "600", color: cores.marca },
+  categorias: { flexDirection: "row", alignItems: "center", gap: espaco.m },
+  legendaCategorias: { flex: 1, gap: 8 },
+  legendaLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
+  ponto: { width: 10, height: 10, borderRadius: 5 },
+  legendaNome: { flex: 1, fontSize: 14, color: cores.texto },
+  legendaPercentual: { fontSize: 14, fontWeight: "600", color: cores.texto },
+  transacao: { flexDirection: "row", alignItems: "center", gap: 12 },
+  transacaoIcone: { width: 40, height: 40, borderRadius: 20, backgroundColor: cores.fundo, alignItems: "center", justifyContent: "center" },
+  transacaoNome: { fontSize: 15, fontWeight: "600", color: cores.texto },
+  transacaoDetalhe: { fontSize: 13, color: cores.textoSecundario },
+  transacaoValor: { fontSize: 15, fontWeight: "600", color: cores.texto, fontVariant: ["tabular-nums"] },
 });

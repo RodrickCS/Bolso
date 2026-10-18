@@ -70,6 +70,9 @@ test("fluxo completo: texto, cupom, fatura, conciliação e painel", opcoes, asy
   const painel = (await chamar(token, "GET", "/painel")).corpo;
   assert.equal(painel.despesas, 247.35);
   assert.equal(painel.porCategoria.find((c) => c.categoria === "Mercado").total, 87.4);
+  // Histórico dos últimos 6 meses, terminando no mês atual
+  assert.equal(painel.historico.length, 6);
+  assert.deepEqual(painel.historico.at(-1), { mes: new Date().toISOString().slice(0, 7), despesas: 247.35, receitas: 0 });
 
   // O mesmo arquivo de novo é recusado antes de chegar na IA
   const repetido = await chamar(token, "POST", "/documentos", arquivo("%PDF-1.4", "application/pdf", "fatura-copia.pdf"));

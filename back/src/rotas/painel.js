@@ -19,12 +19,26 @@ rotasPainel.get(
     await gerarLancamentosFixos(req.usuarioId);
     const where = { usuarioId: req.usuarioId, data: { gte: inicio, lt: fim }, conciliadaComId: null };
 
-    const [grupos, categorias, gruposConta, contas] = await Promise.all([
+    // Últimos 6 meses (até o mês escolhido), para o gráfico e a comparação com o mês anterior
+    const inicioHistorico = new Date(Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth() - 5, 1));
+    const [grupos, categorias, gruposConta, contas, porMes] = await Promise.all([
       prisma.transacao.groupBy({ by: ["tipo", "categoriaId"], where, _sum: { valor: true }, _count: true }),
       prisma.categoria.findMany({ where: { usuarioId: req.usuarioId } }),
       prisma.transacao.groupBy({ by: ["contaId"], where: { ...where, tipo: "DESPESA", contaId: { not: null } }, _sum: { valor: true } }),
       prisma.conta.findMany({ where: { usuarioId: req.usuarioId } }),
+      prisma.$queryRaw`
+        SELECT to_char(data, 'YYYY-MM') AS mes, tipo::text AS tipo, SUM(valor)::float AS total
+        FROM "Transacao"
+        WHERE "usuarioId" = ${req.usuarioId} AND "conciliadaComId" IS NULL
+          AND data >= ${inicioHistorico} AND data < ${fim}
+        GROUP BY 1, 2`,
     ]);
+    const historico = Array.from({ length: 6 }, (_, i) => {
+      const data = new Date(Date.UTC(inicioHistorico.getUTCFullYear(), inicioHistorico.getUTCMonth() + i, 1));
+      const chave = data.toISOString().slice(0, 7);
+      const valor = (tipo) => Math.round((porMes.find((l) => l.mes === chave && l.tipo === tipo)?.total ?? 0) * 100) / 100;
+      return { mes: chave, despesas: valor("DESPESA"), receitas: valor("RECEITA") };
+    });
     const nomePorId = new Map(categorias.map((c) => [c.id, c.nome]));
 
     const total = (tipo) =>
@@ -62,6 +76,7 @@ rotasPainel.get(
       saldo: Math.round((receitas - despesas) * 100) / 100,
       porCategoria,
       porConta,
+      historico,
     });
   }),
 );
