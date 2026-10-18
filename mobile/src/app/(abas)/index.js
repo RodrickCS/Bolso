@@ -1,15 +1,16 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CartaoAssistente, ListaAssinaturas, ListaContas, ListaOrcamentos } from "../../componentes/painel";
+import { CartaoAssistente, ListaAlertas, ListaAssinaturas, ListaContas, ListaOrcamentos } from "../../componentes/painel";
 import { CartaoPrecos } from "../../componentes/precos";
 import { Aviso, Cartao, SeletorMes, Vazio } from "../../componentes/ui";
 import { api } from "../../lib/api";
 import { mesAtual, reais } from "../../lib/formato";
 import { saudacao } from "../../lib/saudacao";
 import { useSessao } from "../../lib/sessao";
-import { cores, espaco } from "../../lib/tema";
+import { cores, espaco, raio } from "../../lib/tema";
 
 function Resumo({ titulo, valor, destaque }) {
   return (
@@ -54,6 +55,21 @@ function BoasVindas() {
   );
 }
 
+// Atalho para o chat, com cara de campo de busca
+function Perguntar() {
+  return (
+    <Pressable
+      onPress={() => router.push("/perguntar")}
+      style={({ pressed }) => [estilos.perguntar, pressed && { opacity: 0.7 }]}
+      accessibilityRole="button"
+      accessibilityLabel="Pergunte ao Bolso"
+    >
+      <Ionicons name="chatbubble-ellipses-outline" size={20} color={cores.marca} />
+      <Text style={estilos.perguntarTexto} numberOfLines={1}>Pergunte ao Bolso sobre seus gastos</Text>
+    </Pressable>
+  );
+}
+
 export default function Painel() {
   const topo = useSafeAreaInsets().top;
   const [mes, setMes] = useState(mesAtual());
@@ -62,6 +78,7 @@ export default function Painel() {
   const [assinaturas, setAssinaturas] = useState(null);
   const [assistente, setAssistente] = useState(null);
   const [precos, setPrecos] = useState(null);
+  const [alertas, setAlertas] = useState([]);
   const [pensando, setPensando] = useState(false);
   const [erro, setErro] = useState(null);
   const [atualizando, setAtualizando] = useState(false);
@@ -77,14 +94,16 @@ export default function Painel() {
     api.produtos().then(setPrecos).catch(() => setPrecos(null));
     try {
       setErro(null);
-      const [resumo, listaOrcamentos, recorrentes] = await Promise.all([
+      const [resumo, listaOrcamentos, recorrentes, avisos] = await Promise.all([
         api.painel(mes),
         api.orcamentos(mes),
         api.assinaturas(mes),
+        api.alertas(mes),
       ]);
       setPainel(resumo);
       setOrcamentos(listaOrcamentos);
       setAssinaturas(recorrentes);
+      setAlertas(avisos);
     } catch (e) {
       setErro(e.message);
     }
@@ -95,6 +114,20 @@ export default function Painel() {
       carregar();
     }, [carregar]),
   );
+
+  // Resposta a um alerta ou assinatura; recarrega só o que muda
+  async function responder(acao) {
+    try {
+      await acao();
+      const [avisos, recorrentes] = await Promise.all([api.alertas(mes), api.assinaturas(mes)]);
+      setAlertas(avisos);
+      setAssinaturas(recorrentes);
+    } catch (e) {
+      setErro(e.message);
+    }
+  }
+  const marcar = (chave, tipo) => responder(() => api.marcar(chave, tipo));
+  const desmarcar = (chave) => responder(() => api.desmarcar(chave));
 
   async function puxarParaAtualizar() {
     setAtualizando(true);
@@ -110,8 +143,10 @@ export default function Painel() {
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={puxarParaAtualizar} tintColor={cores.marca} />}
     >
       <BoasVindas />
+      <Perguntar />
       <SeletorMes mes={mes} aoMudar={setMes} />
       <Aviso mensagem={erro} />
+      <ListaAlertas alertas={alertas} aoMarcar={marcar} aoAbrir={(id) => router.push(`/lancamento?id=${id}`)} />
 
       <CartaoAssistente
         assistente={assistente?.mes === mes ? assistente : null}
@@ -140,7 +175,7 @@ export default function Painel() {
           )}
 
           <ListaContas porConta={painel.porConta} />
-          <ListaAssinaturas dados={assinaturas} />
+          <ListaAssinaturas dados={assinaturas} aoMarcar={marcar} aoDesmarcar={desmarcar} />
           <CartaoPrecos dados={precos} aoTocar={() => router.push("/produtos")} />
         </>
       )}
@@ -153,6 +188,18 @@ const estilos = StyleSheet.create({
   boasVindas: { gap: 4, marginBottom: espaco.p },
   boasVindasTitulo: { fontSize: 28, fontWeight: "700", color: cores.texto },
   boasVindasFrase: { fontSize: 16, lineHeight: 22, color: cores.textoSecundario },
+  perguntar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minHeight: 48,
+    paddingHorizontal: espaco.m,
+    borderRadius: raio,
+    borderWidth: 1,
+    borderColor: cores.borda,
+    backgroundColor: cores.superficie,
+  },
+  perguntarTexto: { flex: 1, fontSize: 15, color: cores.textoSuave },
   resumos: { flexDirection: "row", gap: 12 },
   resumo: { flex: 1, gap: 4 },
   resumoDestaque: { paddingVertical: espaco.g },

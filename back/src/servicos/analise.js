@@ -155,7 +155,7 @@ export function montarAlertas({ mes, duplicadas = [], assinaturas = [], marcacoe
         alertas.push({
           tipo: "reajuste",
           chave,
-          texto: `${a.nome} ficou mais cara: de ${reais(a.reajuste.de)} para ${reais(a.reajuste.para)} (+${percentual}%), ou ${reais((a.reajuste.para - a.reajuste.de) * 12)} a mais por ano.`,
+          texto: `${a.nome} aumentou: de ${reais(a.reajuste.de)} para ${reais(a.reajuste.para)} (+${percentual}%), ou ${reais((a.reajuste.para - a.reajuste.de) * 12)} a mais por ano.`,
         });
       }
     }

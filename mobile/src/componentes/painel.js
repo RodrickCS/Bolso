@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { PELO_TIPO } from "../lib/contas";
 import { diaMes, reais } from "../lib/formato";
 import { cores, espaco } from "../lib/tema";
@@ -116,25 +116,95 @@ export function ListaContas({ porConta }) {
   );
 }
 
-export function ListaAssinaturas({ dados }) {
+const ESTILO_ALERTA = {
+  duplicada: { icone: "copy-outline", cor: cores.critico },
+  cobrou_apos_cancelar: { icone: "alert-circle", cor: cores.critico },
+  reajuste: { icone: "trending-up", cor: cores.alerta },
+};
+
+function BotaoTexto({ titulo, aoTocar }) {
+  return (
+    <Pressable onPress={aoTocar} hitSlop={8} accessibilityRole="button" style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <Text style={estilos.link}>{titulo}</Text>
+    </Pressable>
+  );
+}
+
+// Avisos que pedem uma ação. aoMarcar(chave, tipo) guarda a resposta; aoAbrir(id) abre um lançamento.
+export function ListaAlertas({ alertas, aoMarcar, aoAbrir }) {
+  if (!alertas?.length) return null;
+  return (
+    <>
+      {alertas.map((a) => {
+        const visual = ESTILO_ALERTA[a.tipo] ?? ESTILO_ALERTA.reajuste;
+        // "reajuste:SPOTIFY:2026-10-03" -> "assinatura:SPOTIFY"
+        const assinatura = a.tipo === "reajuste" ? `assinatura:${a.chave.split(":")[1]}` : null;
+        return (
+          <Cartao key={a.chave} style={estilos.alerta}>
+            <Ionicons name={visual.icone} size={20} color={visual.cor} />
+            <View style={{ flex: 1, gap: 10 }}>
+              <Text style={estilos.alertaTexto}>{a.texto}</Text>
+              <View style={estilos.alertaAcoes}>
+                {a.tipo === "duplicada" && <BotaoTexto titulo="Ver a 2ª cobrança" aoTocar={() => aoAbrir(a.transacaoIds[1])} />}
+                {assinatura && <BotaoTexto titulo="Vou cancelar" aoTocar={() => aoMarcar(assinatura, "cancelar")} />}
+                <BotaoTexto titulo={a.tipo === "duplicada" ? "Está certo" : "Entendi"} aoTocar={() => aoMarcar(a.chave, "ok")} />
+              </View>
+            </View>
+          </Cartao>
+        );
+      })}
+    </>
+  );
+}
+
+// Tocar numa assinatura abre as opções: vou cancelar, não é assinatura, desfazer
+export function ListaAssinaturas({ dados, aoMarcar, aoDesmarcar }) {
   if (!dados?.assinaturas.length) return null;
+
+  function opcoes(a) {
+    const chave = `assinatura:${a.chave}`;
+    const botoes = [{ text: "Fechar", style: "cancel" }];
+    if (a.marcacao === "cancelar") {
+      botoes.push({ text: "Desisti de cancelar", onPress: () => aoDesmarcar(chave) });
+    } else {
+      botoes.push({ text: "Vou cancelar", onPress: () => aoMarcar(chave, "cancelar") });
+    }
+    botoes.push({ text: "Não é assinatura", style: "destructive", onPress: () => aoMarcar(chave, "ignorar") });
+    Alert.alert(
+      a.nome,
+      a.marcacao === "cancelar"
+        ? "Marcada para cancelar. Se vier outra cobrança, o Bolso avisa."
+        : `${reais(a.valorMensal)} por mês, ou ${reais(a.valorAnual)} por ano. Marque "Vou cancelar" e o Bolso avisa se ela cobrar de novo.`,
+      botoes,
+    );
+  }
+
   return (
     <>
       <View style={estilos.cabecalho}>
         <Text style={estilos.secao}>Cobranças recorrentes</Text>
         <Text style={estilos.valor}>{reais(dados.totalMensal)}/mês</Text>
       </View>
+      {dados.totalAnual > 0 && (
+        <Text style={estilos.textoSecundario}>
+          {reais(dados.totalAnual)} por ano. Toque numa cobrança para marcar o que você quer cancelar.
+        </Text>
+      )}
       <Cartao style={{ gap: 12 }}>
         {dados.assinaturas.map((a) => (
-          <View key={a.chave} style={estilos.linhaTopo}>
+          <Pressable key={a.chave} onPress={() => opcoes(a)} style={({ pressed }) => [estilos.linhaTopo, pressed && { opacity: 0.6 }]}>
             <View style={{ flex: 1 }}>
               <Text style={[estilos.nome, !a.ativa && estilos.inativa]} numberOfLines={1}>{a.nome}</Text>
               <Text style={estilos.textoSecundario}>
-                {a.ativa ? `${a.meses} meses seguidos` : `Sem cobrança desde ${diaMes(a.ultimaCobranca)}`}
+                {a.marcacao === "cancelar"
+                  ? "Marcada para cancelar"
+                  : a.ativa
+                    ? `${a.meses} meses seguidos`
+                    : `Sem cobrança desde ${diaMes(a.ultimaCobranca)}`}
               </Text>
             </View>
             <Text style={[estilos.valor, !a.ativa && estilos.inativa]}>{reais(a.valorMensal)}</Text>
-          </View>
+          </Pressable>
         ))}
       </Cartao>
     </>
@@ -162,5 +232,8 @@ const estilos = StyleSheet.create({
   legenda: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   textoSecundario: { fontSize: 13, color: cores.textoSecundario, fontWeight: "400" },
   inativa: { color: cores.textoSuave },
+  alerta: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  alertaTexto: { fontSize: 15, lineHeight: 21, color: cores.texto },
+  alertaAcoes: { flexDirection: "row", flexWrap: "wrap", gap: espaco.m },
   contaNome: { flexDirection: "row", alignItems: "center", gap: espaco.p, flexShrink: 1 },
 });

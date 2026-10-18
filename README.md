@@ -17,6 +17,8 @@ Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do c
 - **Conciliação:** o mesmo gasto que chega pelo cupom e pela fatura é contado uma vez só. A fatura vale como valor oficial e o cupom guarda os itens. O mesmo arquivo enviado de novo é recusado antes de chegar na IA, sem gastar créditos; e uma fatura ou extrato baixado de novo, com linhas repetidas, não duplica nada.
 - **Painel do mês** com gastos por categoria, entradas e saldo.
 - **Assistente do mês:** compara com o mês anterior, prevê o fechamento, aponta gastos fora do padrão e orçamentos estourando. As contas são feitas em código; a IA (Haiku) só escreve as dicas, no máximo uma vez por dia, por menos de US$ 0,001 cada. Sem IA, o cartão mostra os mesmos fatos em texto pronto.
+- **Pergunte ao Bolso:** um chat para perguntas como *"quanto gastei com Uber desde agosto?"* ou *"qual mês gastei mais com mercado?"*. A IA (Haiku) só traduz a pergunta em filtros (período, categoria, loja); as contas e a resposta são feitas em código com os seus lançamentos, então ela não inventa números. Cerca de US$ 0,0001 por pergunta, com limite de 40 por dia.
+- **Alertas de cobrança (sem IA):** cobrança em dobro, assinatura que aumentou (com quanto custa a mais por ano) e assinatura que cobrou de novo depois de você marcar "Vou cancelar". As cobranças recorrentes mostram o total por ano, e dá para marcar "não é assinatura".
 - **Orçamentos por categoria** com medidor e alerta a partir de 80%.
 - **Cobranças recorrentes detectadas** (assinaturas, aluguel...), avisando quando uma parou de cobrar.
 - **Custo da IA sob controle:** cada chamada à API do Claude é registrada, e o app mostra quanto dos créditos já foi usado no mês.
@@ -139,5 +141,6 @@ mobile/
 - [x] Detectar assinaturas e gastos recorrentes
 - [x] Previsão do fim do mês (no assistente)
 - [x] Inflação pessoal e comparação de preços entre mercados
-- [ ] Chat com os seus dados ("quanto gastei com transporte desde agosto?")
+- [x] Chat com os seus dados ("quanto gastei com transporte desde agosto?")
+- [x] Alertas de cobrança em dobro, reajuste de assinatura e cancelamento não concluído
 - [ ] Resumo semanal por notificação

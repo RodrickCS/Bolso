@@ -84,6 +84,12 @@ export const api = {
   enviarNfce: (qrcode, pagina, contaId) =>
     requisicao("/documentos/nfce", { metodo: "POST", corpo: { qrcode, pagina: pagina ?? undefined, contaId }, limiteMs: 90_000 }),
 
+  alertas: (mes) => requisicao(`/alertas?mes=${mes}`),
+  // tipo: "ignorar" (não é assinatura), "cancelar" (vou cancelar) ou "ok" (aviso visto)
+  marcar: (chave, tipo) => requisicao("/marcacoes", { metodo: "PUT", corpo: { chave, tipo } }),
+  desmarcar: (chave) => requisicao(`/marcacoes?chave=${encodeURIComponent(chave)}`, { metodo: "DELETE" }),
+  perguntar: (pergunta) => requisicao("/perguntas", { metodo: "POST", corpo: { pergunta }, limiteMs: 60_000 }),
+
   produtos: () => requisicao("/produtos"),
   produto: (id) => requisicao(`/produtos/${id}`),
   renomearProduto: (id, nome) => requisicao(`/produtos/${id}`, { metodo: "PATCH", corpo: { nome } }),

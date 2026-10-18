@@ -121,7 +121,7 @@ test("reajuste de assinatura: dois patamares de valor viram aviso com o custo a 
   );
   // O aviso aparece no mês do reajuste, e some quando o usuário responde
   const [aviso] = montarAlertas({ mes: "2026-09", assinaturas: [assinatura] });
-  assert.equal(aviso.texto, "Netflix ficou mais cara: de R$\u00a039,90 para R$\u00a044,90 (+13%), ou R$\u00a060,00 a mais por ano.");
+  assert.equal(aviso.texto, "Netflix aumentou: de R$\u00a039,90 para R$\u00a044,90 (+13%), ou R$\u00a060,00 a mais por ano.");
   assert.deepEqual(montarAlertas({ mes: "2026-10", assinaturas: [assinatura] }), []);
   assert.deepEqual(montarAlertas({ mes: "2026-09", assinaturas: [assinatura], marcacoes: new Map([[aviso.chave, { tipo: "ok" }]]) }), []);
 
