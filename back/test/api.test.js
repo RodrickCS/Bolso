@@ -377,3 +377,68 @@ test("cupom pelo QR Code da NFC-e: itens da SEFAZ, sem repetir, memória de prod
   assert.equal(erro.status, "ERRO");
   assert.match(erro.erro, /^A SEFAZ ainda não mostra essa nota/);
 });
+
+test("alertas: reajuste, cobrança em dobro, vou cancelar e não é assinatura", opcoes, async () => {
+  const token = await cadastrar("alertas@teste.com");
+  const categorias = (await chamar(token, "GET", "/categorias")).corpo;
+  const id = (nome) => categorias.find((c) => c.nome === nome).id;
+  const agora = new Date();
+  const dia = (mesesAtras, d) => new Date(Date.UTC(agora.getFullYear(), agora.getMonth() - mesesAtras, d)).toISOString().slice(0, 10);
+  const lancar = (valor, data, descricao, categoria) =>
+    chamar(token, "POST", "/transacoes", { valor, data, descricao, categoriaId: id(categoria) });
+
+  for (const mesesAtras of [3, 2, 1]) await lancar(19.9, dia(mesesAtras, 3), "Spotify", "Assinaturas");
+  await lancar(21.9, dia(0, 3), "Spotify", "Assinaturas");
+  await lancar(129.9, dia(0, 2), "Loja X Online", "Compras");
+  await lancar(129.9, dia(0, 2), "Loja X Online", "Compras");
+
+  let alertas = (await chamar(token, "GET", "/alertas")).corpo;
+  assert.deepEqual(alertas.map((a) => a.tipo).sort(), ["duplicada", "reajuste"]);
+  const { assinaturas, totalMensal, totalAnual } = (await chamar(token, "GET", "/assinaturas")).corpo;
+  assert.deepEqual([assinaturas[0].nome, totalMensal, totalAnual], ["Spotify", 21.9, 262.8]);
+
+  // "Está certo" some com o aviso
+  const duplicada = alertas.find((a) => a.tipo === "duplicada");
+  assert.equal((await chamar(token, "PUT", "/marcacoes", { chave: duplicada.chave, tipo: "ok" })).status, 200);
+  alertas = (await chamar(token, "GET", "/alertas")).corpo;
+  assert.deepEqual(alertas.map((a) => a.tipo), ["reajuste"]);
+
+  // "Vou cancelar": sai do total e o aviso de reajuste deixa de fazer sentido
+  const chave = `assinatura:${assinaturas[0].chave}`;
+  await chamar(token, "PUT", "/marcacoes", { chave, tipo: "cancelar" });
+  let resposta = (await chamar(token, "GET", "/assinaturas")).corpo;
+  assert.deepEqual([resposta.assinaturas[0].marcacao, resposta.totalMensal], ["cancelar", 0]);
+  assert.deepEqual((await chamar(token, "GET", "/alertas")).corpo, []);
+
+  // "Não é assinatura" tira da lista; desfazer traz de volta
+  await chamar(token, "PUT", "/marcacoes", { chave, tipo: "ignorar" });
+  assert.deepEqual((await chamar(token, "GET", "/assinaturas")).corpo.assinaturas, []);
+  assert.equal((await chamar(token, "DELETE", `/marcacoes?chave=${encodeURIComponent(chave)}`)).status, 204);
+  resposta = (await chamar(token, "GET", "/assinaturas")).corpo;
+  assert.deepEqual([resposta.assinaturas[0].marcacao, resposta.totalMensal], [null, 21.9]);
+
+  assert.equal((await chamar(token, "PUT", "/marcacoes", { chave: "qualquer", tipo: "ok" })).status, 400);
+});
+
+test("pergunte ao Bolso: a resposta vem dos números do banco", opcoes, async () => {
+  const token = await cadastrar("perguntas@teste.com");
+  const categorias = (await chamar(token, "GET", "/categorias")).corpo;
+  const id = (nome) => categorias.find((c) => c.nome === nome).id;
+  const hoje = new Date().toISOString().slice(0, 10);
+  await chamar(token, "POST", "/transacoes", { valor: 87.4, data: hoje, descricao: "Supermercado Bom Preço", categoriaId: id("Mercado") });
+  await chamar(token, "POST", "/transacoes", { valor: 23.15, data: hoje, descricao: "Uber", categoriaId: id("Transporte") });
+
+  const perguntar = (pergunta) => chamar(token, "POST", "/perguntas", { pergunta });
+  const total = (await perguntar("Quanto gastei com mercado este mês?")).corpo;
+  assert.match(total.resposta, /^Você gastou R\$ 87,40 com Mercado/);
+  assert.equal(total.filtros.intencao, "total");
+
+  const onde = (await perguntar("Onde mais gastei?")).corpo;
+  assert.match(onde.resposta, /onde você mais gastou foi Supermercado Bom Preço: R\$ 87,40/);
+  assert.deepEqual(onde.linhas.map((l) => l.valor), [87.4, 23.15]);
+
+  assert.equal((await perguntar("")).status, 400);
+  // Outro usuário não enxerga nada
+  const outro = await cadastrar("outro-perguntas@teste.com");
+  assert.match((await chamar(outro, "POST", "/perguntas", { pergunta: "quanto gastei?" })).corpo.resposta, /^Não achei gastos/);
+});

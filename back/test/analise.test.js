@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calcularFatos, detectarAssinaturas, reais } from "../src/servicos/analise.js";
+import { calcularFatos, detectarAssinaturas, detectarDuplicadas, montarAlertas, reais } from "../src/servicos/analise.js";
 
 const gasto = (data, valor, descricao, extra = {}) => ({
   tipo: "DESPESA",
@@ -107,4 +107,50 @@ test("mês passado não tem previsão e compara com o mês inteiro anterior", ()
   });
   assert.ok(!fatos.some((f) => f.tipo === "previsao"));
   assert.ok(fatos.some((f) => f.texto === "Você gastou R$\u00a0500,00, 100% a mais que em agosto."));
+});
+
+test("reajuste de assinatura: dois patamares de valor viram aviso com o custo a mais por ano", () => {
+  const netflix = (data, valor) => gasto(data, valor, "Netflix", { estabelecimento: "NETFLIX.COM" });
+  const [assinatura] = detectarAssinaturas(
+    [netflix("2026-06-05", 39.9), netflix("2026-07-05", 39.9), netflix("2026-08-05", 39.9), netflix("2026-09-05", 44.9), netflix("2026-10-05", 44.9)],
+    hoje,
+  );
+  assert.deepEqual(
+    [assinatura.valorMensal, assinatura.valorAnual, assinatura.reajuste],
+    [44.9, 538.8, { de: 39.9, para: 44.9, desde: "2026-09-05" }],
+  );
+  // O aviso aparece no mês do reajuste, e some quando o usuário responde
+  const [aviso] = montarAlertas({ mes: "2026-09", assinaturas: [assinatura] });
+  assert.equal(aviso.texto, "Netflix ficou mais cara: de R$\u00a039,90 para R$\u00a044,90 (+13%), ou R$\u00a060,00 a mais por ano.");
+  assert.deepEqual(montarAlertas({ mes: "2026-10", assinaturas: [assinatura] }), []);
+  assert.deepEqual(montarAlertas({ mes: "2026-09", assinaturas: [assinatura], marcacoes: new Map([[aviso.chave, { tipo: "ok" }]]) }), []);
+
+  // Só 2 cobranças diferentes não bastam para ser reajuste (podem ser duas compras quaisquer)
+  assert.deepEqual(detectarAssinaturas([netflix("2026-09-05", 39.9), netflix("2026-10-05", 44.9)], hoje), []);
+});
+
+test("cobrança em dobro: mesma loja e valor em até um dia, a partir de R$ 20", () => {
+  const compra = (id, data, valor, descricao, extra) => ({ ...gasto(data, valor, descricao, extra), id });
+  const duplicadas = detectarDuplicadas([
+    compra(1, "2026-10-10", 129.9, "Loja X", { estabelecimento: "LOJA X ONLINE" }),
+    compra(2, "2026-10-11", 129.9, "Loja X", { estabelecimento: "LOJA X ONLINE" }),
+    compra(3, "2026-10-12", 6, "Café", { estabelecimento: "PADARIA" }),
+    compra(4, "2026-10-12", 6, "Café", { estabelecimento: "PADARIA" }),
+    compra(5, "2026-10-01", 50, "Posto", { estabelecimento: "POSTO SHELL" }),
+    compra(6, "2026-10-15", 50, "Posto", { estabelecimento: "POSTO SHELL" }),
+    compra(7, "2026-10-03", 99, "Fone", { parcelaTotal: 3 }),
+    compra(8, "2026-10-03", 99, "Fone", { parcelaTotal: 3 }),
+  ]);
+  assert.deepEqual(duplicadas.map((d) => d.ids), [[1, 2]]);
+  const [aviso] = montarAlertas({ mes: "2026-10", duplicadas });
+  assert.equal(aviso.texto, "Possível cobrança em dobro: LOJA X ONLINE, R$\u00a0129,90 duas vezes em 11/10. Confira na fatura e, se for engano, peça o estorno.");
+});
+
+test("assinatura marcada para cancelar que cobrou de novo vira aviso", () => {
+  const assinatura = { chave: "SPOTIFY", nome: "Spotify", valorMensal: 21.9, ultimaCobranca: "2026-10-08", reajuste: null };
+  const marcada = (dia) => new Map([["assinatura:SPOTIFY", { tipo: "cancelar", criadoEm: new Date(`2026-${dia}T12:00:00Z`) }]]);
+  const [aviso] = montarAlertas({ mes: "2026-10", assinaturas: [assinatura], marcacoes: marcada("09-20") });
+  assert.equal(aviso.tipo, "cobrou_apos_cancelar");
+  assert.match(aviso.texto, /^Você marcou Spotify para cancelar, mas veio cobrança de R\$\u00a021,90 em 08\/10/);
+  assert.deepEqual(montarAlertas({ mes: "2026-10", assinaturas: [assinatura], marcacoes: marcada("10-09") }), [], "cancelou depois da última cobrança");
 });

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { escreverDicas } from "../ia/assistente.js";
 import { intervaloDoMes } from "../lib/meses.js";
 import { prisma } from "../lib/prisma.js";
-import { calcularFatos, detectarAssinaturas } from "./analise.js";
+import { calcularFatos, detectarAssinaturas, detectarDuplicadas, montarAlertas } from "./analise.js";
 import { fatosDePrecos, resumirProdutos } from "./precos.js";
 
 const UM_DIA = 24 * 60 * 60 * 1000;
@@ -40,7 +40,7 @@ export async function statusOrcamentos(usuarioId, mes) {
 async function despesas(usuarioId, inicio, fim) {
   const lista = await prisma.transacao.findMany({
     where: { usuarioId, tipo: "DESPESA", conciliadaComId: null, data: { gte: inicio, lt: fim } },
-    select: { data: true, valor: true, descricao: true, estabelecimento: true, parcelaTotal: true, tipo: true, categoria: { select: { nome: true } } },
+    select: { id: true, data: true, valor: true, descricao: true, estabelecimento: true, parcelaTotal: true, tipo: true, categoria: { select: { nome: true } } },
   });
   return lista.map((t) => ({ ...t, valor: Number(t.valor), categoria: t.categoria?.nome ?? null }));
 }
@@ -52,10 +52,38 @@ function referencia(mes) {
   return agora < fim ? agora : new Date(fim.getTime() - UM_DIA);
 }
 
-export async function assinaturasDetectadas(usuarioId, mes) {
+// Respostas do usuário a alertas e assinaturas: Map(chave -> { tipo, criadoEm })
+export async function marcacoesDoUsuario(usuarioId) {
+  const lista = await prisma.marcacao.findMany({ where: { usuarioId } });
+  return new Map(lista.map((m) => [m.chave, m]));
+}
+
+// Assinaturas detectadas, sem as que o usuário disse que não são, e com a marcação "vou cancelar"
+export async function assinaturasDetectadas(usuarioId, mes, marcacoes) {
   const { fim } = intervaloDoMes(mes);
   const seisMesesAntes = new Date(Date.UTC(fim.getUTCFullYear(), fim.getUTCMonth() - 6, 1));
-  return detectarAssinaturas(await despesas(usuarioId, seisMesesAntes, fim), referencia(mes));
+  const [lista, respostas] = await Promise.all([
+    despesas(usuarioId, seisMesesAntes, fim),
+    marcacoes ?? marcacoesDoUsuario(usuarioId),
+  ]);
+  return detectarAssinaturas(lista, referencia(mes))
+    .map((a) => {
+      const marcacao = respostas.get(`assinatura:${a.chave}`);
+      const cobrouDepois = marcacao && a.ultimaCobranca > marcacao.criadoEm.toISOString().slice(0, 10);
+      // Marcada para cancelar e sem cobrança nova: já não conta como gasto do mês
+      return { ...a, marcacao: marcacao?.tipo ?? null, ativa: a.ativa && (marcacao?.tipo !== "cancelar" || cobrouDepois) };
+    })
+    .filter((a) => a.marcacao !== "ignorar");
+}
+
+export async function alertasDoMes(usuarioId, mes) {
+  const { inicio, fim } = intervaloDoMes(mes);
+  const marcacoes = await marcacoesDoUsuario(usuarioId);
+  const [doMes, assinaturas] = await Promise.all([
+    despesas(usuarioId, inicio, fim),
+    assinaturasDetectadas(usuarioId, mes, marcacoes),
+  ]);
+  return montarAlertas({ mes, duplicadas: detectarDuplicadas(doMes), assinaturas, marcacoes });
 }
 
 // Itens de cupom ligados a um produto, no formato que as análises de preço esperam
@@ -92,6 +120,8 @@ export async function fatosDoMes(usuarioId, mes) {
     assinaturasDetectadas(usuarioId, mes),
     comprasDeProdutos(usuarioId),
   ]);
+  // Os alertas (cobrança em dobro, reajuste) têm cartão próprio no painel e não entram nas dicas,
+  // que ficam guardadas por um dia: um aviso já respondido continuaria aparecendo ali
   return [
     ...calcularFatos({ mes, hoje: referencia(mes), atuais, anteriores, historico, orcamentos, assinaturas }),
     ...fatosDePrecos(resumirProdutos(compras), mes),

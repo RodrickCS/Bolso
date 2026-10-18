@@ -61,6 +61,7 @@ model Usuario {
   usoIa      UsoIa[]
   orcamentos Orcamento[]
   resumos    ResumoAssistente[]
+  marcacoes  Marcacao[]
 }
 
 model Conta {
@@ -217,4 +218,17 @@ model ResumoAssistente {
   usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([usuarioId, mes])
+}
+
+// O que o usuário respondeu sobre um alerta ou uma assinatura, pela chave do aviso:
+// "ignorar" (não é assinatura), "cancelar" (vai cancelar; avisa se cobrar de novo) ou "ok" (aviso visto)
+model Marcacao {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  chave     String
+  tipo      String
+  criadoEm  DateTime @default(now())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, chave])
 }

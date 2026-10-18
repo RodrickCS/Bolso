@@ -27,8 +27,24 @@ function mesesEntre(a, b) {
   return (anoB - anoA) * 12 + (mesB - mesA);
 }
 
-// Assinatura = mesmo estabelecimento, valor quase igual (até 10% de diferença; 2% se só houver 2 meses),
-// no máximo 2 cobranças por mês, em pelo menos 2 meses próximos. Uber e mercado ficam de fora por aparecerem muitas vezes no mês.
+const quaseIgual = (a, b) => Math.abs(a - b) <= Math.max(b * 0.02, 0.01);
+
+// Reajuste: o valor ficou parado num patamar e depois mudou para outro, também parado.
+// Ex: 39,90 · 39,90 · 39,90 · 44,90 · 44,90 -> { de: 39.9, para: 44.9, desde: data da 1ª cobrança de 44,90 }
+function acharReajuste(ordenadas) {
+  const valor = (t) => Number(t.valor);
+  const atual = valor(ordenadas.at(-1));
+  let inicio = ordenadas.length - 1;
+  while (inicio > 0 && quaseIgual(valor(ordenadas[inicio - 1]), atual)) inicio--;
+  if (inicio === 0) return null;
+  const anterior = valor(ordenadas[inicio - 1]);
+  if (!ordenadas.slice(0, inicio).every((t) => quaseIgual(valor(t), anterior))) return null;
+  return { de: anterior, para: atual, desde: ordenadas[inicio].data.toISOString().slice(0, 10) };
+}
+
+// Assinatura = mesmo estabelecimento, valor quase igual (até 10% de diferença; 2% se só houver 2 meses)
+// ou um reajuste limpo (dois patamares, com pelo menos 3 cobranças), no máximo 2 cobranças por mês,
+// em pelo menos 2 meses próximos. Uber e mercado ficam de fora por aparecerem muitas vezes no mês.
 export function detectarAssinaturas(transacoes, hoje) {
   const grupos = new Map();
   for (const t of transacoes) {
@@ -47,20 +63,24 @@ export function detectarAssinaturas(transacoes, hoje) {
     if (meses.length < 2 || Math.max(...porMes.values()) > 2) continue;
     if (meses.some((mes, i) => i > 0 && mesesEntre(meses[i - 1], mes) > 2)) continue;
 
-    const valores = lista.map((t) => Number(t.valor));
+    const ordenadas = [...lista].sort((a, b) => a.data - b.data);
+    const valores = ordenadas.map((t) => Number(t.valor));
     const valorTipico = mediana(valores);
     // Assinatura quase não muda de valor (no máximo um reajuste); compras de mercado variam bem mais.
     // Com só 2 meses, duas idas ao mercado de valor parecido enganariam: aí o valor tem que ser praticamente igual.
     const tolerancia = meses.length === 2 ? 0.02 : 0.1;
     const parecidos = valores.filter((v) => Math.abs(v - valorTipico) <= valorTipico * tolerancia).length;
-    if (parecidos / valores.length < 0.8) continue;
+    const reajuste = ordenadas.length >= 3 ? acharReajuste(ordenadas) : null;
+    if (parecidos / valores.length < 0.8 && !reajuste) continue;
 
-    const ultima = lista.reduce((a, b) => (b.data > a.data ? b : a));
+    const ultima = ordenadas.at(-1);
     assinaturas.push({
       chave,
       nome: ultima.descricao,
       categoria: ultima.categoria ?? null,
-      valorMensal: arredondar(valorTipico),
+      valorMensal: arredondar(reajuste ? reajuste.para : valorTipico),
+      valorAnual: arredondar((reajuste ? reajuste.para : valorTipico) * 12),
+      reajuste: reajuste && reajuste.para > reajuste.de && reajuste.para - reajuste.de >= 0.5 ? reajuste : null,
       ultimaCobranca: ultima.data.toISOString().slice(0, 10),
       meses: meses.length,
       ativa: (hoje.getTime() - ultima.data.getTime()) / UM_DIA <= 45,
@@ -71,6 +91,78 @@ export function detectarAssinaturas(transacoes, hoje) {
 
 // "Fatos" do mês, cada um com um texto pronto. Funcionam sozinhos se a IA estiver indisponível.
 // atuais: despesas do mês; anteriores: despesas do mês anterior; historico: despesas dos 90 dias antes do mês.
+// Mesma loja, mesmo valor, no mesmo dia ou no dia seguinte: pode ser cobrança em dobro.
+// Só a partir de R$ 20 (dois cafés iguais no mesmo dia são normais) e fora de parcelas.
+export function detectarDuplicadas(transacoes) {
+  const grupos = new Map();
+  for (const t of transacoes) {
+    if (t.tipo !== "DESPESA" || t.parcelaTotal || Number(t.valor) < 20) continue;
+    const loja = normalizarEstabelecimento(t.estabelecimento ?? t.descricao);
+    if (!loja) continue;
+    const chave = `${loja}|${Math.round(Number(t.valor) * 100)}`;
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(t);
+  }
+  const duplicadas = [];
+  for (const lista of grupos.values()) {
+    lista.sort((a, b) => a.data - b.data || a.id - b.id);
+    for (let i = 1; i < lista.length; i++) {
+      const [a, b] = [lista[i - 1], lista[i]];
+      if ((b.data - a.data) / UM_DIA > 1) continue;
+      duplicadas.push({
+        chave: `duplicada:${a.id}-${b.id}`,
+        ids: [a.id, b.id],
+        nome: b.estabelecimento ?? b.descricao,
+        valor: Number(b.valor),
+        data: b.data.toISOString().slice(0, 10),
+      });
+      i++; // um par por vez: três cobranças iguais viram dois avisos, não três
+    }
+  }
+  return duplicadas.sort((a, b) => b.data.localeCompare(a.data));
+}
+
+// Avisos que pedem uma ação: cobrança em dobro, assinatura mais cara e cobrança depois de marcar para cancelar.
+// marcacoes: Map(chave -> { tipo, criadoEm }) com o que o usuário já respondeu.
+export function montarAlertas({ mes, duplicadas = [], assinaturas = [], marcacoes = new Map() }) {
+  const alertas = [];
+  const dataBR = (iso) => diaMes(new Date(`${iso}T00:00:00Z`));
+  for (const d of duplicadas) {
+    if (marcacoes.has(d.chave)) continue;
+    alertas.push({
+      tipo: "duplicada",
+      chave: d.chave,
+      transacaoIds: d.ids,
+      texto: `Possível cobrança em dobro: ${d.nome}, ${reais(d.valor)} duas vezes em ${dataBR(d.data)}. Confira na fatura e, se for engano, peça o estorno.`,
+    });
+  }
+  for (const a of assinaturas) {
+    const marcacao = marcacoes.get(`assinatura:${a.chave}`);
+    if (marcacao?.tipo === "cancelar" && a.ultimaCobranca > marcacao.criadoEm.toISOString().slice(0, 10)) {
+      const chave = `cobranca:${a.chave}:${a.ultimaCobranca}`;
+      if (!marcacoes.has(chave)) {
+        alertas.push({
+          tipo: "cobrou_apos_cancelar",
+          chave,
+          texto: `Você marcou ${a.nome} para cancelar, mas veio cobrança de ${reais(a.valorMensal)} em ${dataBR(a.ultimaCobranca)}. Confira se o cancelamento foi concluído.`,
+        });
+      }
+    }
+    if (a.reajuste && a.reajuste.desde.startsWith(mes) && marcacao?.tipo !== "cancelar") {
+      const chave = `reajuste:${a.chave}:${a.reajuste.desde}`;
+      if (!marcacoes.has(chave)) {
+        const percentual = Math.round(((a.reajuste.para - a.reajuste.de) / a.reajuste.de) * 100);
+        alertas.push({
+          tipo: "reajuste",
+          chave,
+          texto: `${a.nome} ficou mais cara: de ${reais(a.reajuste.de)} para ${reais(a.reajuste.para)} (+${percentual}%), ou ${reais((a.reajuste.para - a.reajuste.de) * 12)} a mais por ano.`,
+        });
+      }
+    }
+  }
+  return alertas;
+}
+
 export function calcularFatos({ mes, hoje, atuais, anteriores, historico, orcamentos = [], assinaturas = [] }) {
   const fatos = [];
   const [ano, numero] = mes.split("-").map(Number);
@@ -176,7 +268,7 @@ export function calcularFatos({ mes, hoje, atuais, anteriores, historico, orcame
     fatos.push({
       tipo: "assinaturas",
       prioridade: 40,
-      texto: `Encontrei ${ativas.length} ${ativas.length === 1 ? "cobrança recorrente" : "cobranças recorrentes"} (${ativas.map((a) => a.nome).slice(0, 3).join(", ")}) que somam ${reais(totalMensal)} por mês.`,
+      texto: `Encontrei ${ativas.length} ${ativas.length === 1 ? "cobrança recorrente" : "cobranças recorrentes"} (${ativas.map((a) => a.nome).slice(0, 3).join(", ")}) que somam ${reais(totalMensal)} por mês, ou ${reais(totalMensal * 12)} por ano.`,
     });
   }
   for (const a of assinaturas.filter((a) => !a.ativa).slice(0, 1)) {
