@@ -29,6 +29,16 @@ const ROTULOS = {
   TEXTO: "texto digitado pelo usuário",
 };
 
+// Muitos bancos ainda exportam em Latin-1 (Windows-1252): se não for UTF-8 válido, lê nessa codificação
+export function textoDoArquivo(conteudo) {
+  const bytes = Buffer.from(conteudo);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
+
 function blocoConteudo(documento) {
   if (documento.tipo === "TEXTO") return { type: "text", text: `<texto>${documento.texto}</texto>` };
 
@@ -40,7 +50,7 @@ function blocoConteudo(documento) {
     return { type: "image", source: { type: "base64", media_type: documento.mimeType, data: base64 } };
   }
   // CSV, OFX e outros arquivos de texto exportados pelo banco
-  return { type: "text", text: `<arquivo>${Buffer.from(documento.conteudo).toString("utf8")}</arquivo>` };
+  return { type: "text", text: `<arquivo>${textoDoArquivo(documento.conteudo)}</arquivo>` };
 }
 
 // Lê um documento e devolve { transacoes, observacao } já validado pelo schema

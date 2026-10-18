@@ -143,11 +143,10 @@ export default function Adicionar() {
     );
   }
 
-  // Seletor do próprio expo-file-system: os arquivos que ele devolve o app tem permissão para ler
+  // Seletor do próprio expo-file-system: os arquivos que ele devolve o app tem permissão para ler.
+  // Aceita qualquer tipo: no Android CSV e OFX chegam com tipos variados, e quem confere o formato é a API.
   async function usarArquivo() {
-    const escolha = await File.pickFileAsync({
-      mimeTypes: ["application/pdf", "text/csv", "text/comma-separated-values", "application/x-ofx", "application/octet-stream", "image/*"],
-    });
+    const escolha = await File.pickFileAsync({ mimeTypes: ["*/*"] });
     if (escolha.canceled) return;
     const arquivo = escolha.result;
     acompanhar(async () => {

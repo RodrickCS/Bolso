@@ -3,6 +3,7 @@ import multer from "multer";
 import { z } from "zod";
 import { config } from "../config.js";
 import { ErroHttp, assincrono, validar } from "../lib/erros.js";
+import { IMAGENS, TEXTOS, detectarFormato } from "../lib/formatos.js";
 import { prisma } from "../lib/prisma.js";
 import { acordarProcessador } from "../servicos/processador.js";
 import { garantirDono } from "./cadastros.js";
@@ -11,24 +12,15 @@ export const rotasDocumentos = Router();
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.uploadMaxBytes } });
 
-// Formatos que a API do Claude lê direto, mais os arquivos de texto que os bancos exportam
-const IMAGENS = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const TEXTOS = new Set(["text/csv", "text/plain", "application/x-ofx", "application/ofx", "text/x-ofx"]);
-
 function tipoPadrao(mimeType) {
   if (IMAGENS.has(mimeType)) return "CUPOM";
   if (mimeType === "application/pdf") return "FATURA";
   return "EXTRATO";
 }
 
-// Alguns celulares mandam arquivos como application/octet-stream (ou sem tipo); nesse caso vale a extensão
-function normalizarMime(mimeType, nome = "") {
-  if (!mimeType || mimeType === "application/octet-stream") {
-    const extensao = nome.split(".").pop().toLowerCase();
-    const porExtensao = { ofx: "application/x-ofx", csv: "text/csv", pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png" };
-    if (porExtensao[extensao]) return porExtensao[extensao];
-  }
-  return mimeType ?? "application/octet-stream";
+function conteudoBase64(arquivo) {
+  const conteudo = Buffer.from(arquivo.base64, "base64");
+  return { conteudo, mimeType: detectarFormato(conteudo, arquivo.mimeType, arquivo.nome) };
 }
 
 const envio = z.object({
@@ -57,11 +49,8 @@ rotasDocumentos.post(
 
     let documento;
     const arquivo = req.file
-      ? { conteudo: req.file.buffer, mimeType: normalizarMime(req.file.mimetype, req.file.originalname) }
-      : dados.arquivo && {
-          conteudo: Buffer.from(dados.arquivo.base64, "base64"),
-          mimeType: normalizarMime(dados.arquivo.mimeType, dados.arquivo.nome),
-        };
+      ? { conteudo: req.file.buffer, mimeType: detectarFormato(req.file.buffer, req.file.mimetype, req.file.originalname) }
+      : dados.arquivo && conteudoBase64(dados.arquivo);
 
     if (arquivo) {
       const { conteudo, mimeType } = arquivo;
