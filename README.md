@@ -3,9 +3,14 @@
 Controle de gastos pessoais em que **a IA faz o trabalho chato**. Tire foto do cupom, envie o PDF da fatura ou o extrato do banco, ou só digite *"gastei 35 no uber ontem"*: o Bolso lê, separa as transações, categoriza e monta o painel do mês.
 
 <p align="center">
-  <img src="docs/painel.png" width="250" alt="Painel do mês com gastos por categoria" />
-  <img src="docs/gastos.png" width="250" alt="Lista de gastos com cupom conciliado com a fatura" />
-  <img src="docs/adicionar.png" width="250" alt="Tela de adicionar gasto por texto, foto ou arquivo" />
+  <img src="docs/painel.png" width="250" alt="Painel com alerta de cobrança em dobro, assinatura que aumentou e dicas do assistente" />
+  <img src="docs/chat.png" width="250" alt="Pergunte ao Bolso respondendo onde a pessoa mais gastou, quanto recebeu e o mês com mais gasto em mercado" />
+  <img src="docs/adicionar.png" width="250" alt="Tela de adicionar gasto por texto, QR Code do cupom, foto ou arquivo" />
+</p>
+<p align="center">
+  <img src="docs/precos.png" width="250" alt="Inflação pessoal e preço de cada produto, com o mercado mais barato" />
+  <img src="docs/produto.png" width="250" alt="Histórico de preço do café com gráfico e comparação entre mercados" />
+  <img src="docs/assinaturas.png" width="250" alt="Gastos por categoria e cobranças recorrentes com total por ano" />
 </p>
 
 ## O que ele faz
