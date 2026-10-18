@@ -2,7 +2,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { config } from "../config.js";
 import { textoDoArquivo } from "../lib/formatos.js";
 import { hojeISO } from "../servicos/texto.js";
-import { FALLBACK, clienteIa, registrarUso, verificarResposta } from "./cliente.js";
+import { CACHE, FALLBACK, clienteIa, registrarUso, verificarResposta } from "./cliente.js";
 import { esquemaCategoria, esquemaExtracao } from "./esquemas.js";
 import { respostaMock } from "./mocks/index.js";
 
@@ -53,7 +53,20 @@ export async function extrairTransacoes(documento, nomesCategorias, produtosConh
     model: modelo,
     max_tokens: 64000,
     ...FALLBACK,
-    system: INSTRUCOES,
+    // O que se repete entre documentos (instruções e produtos já vistos) vem antes e fica no cache;
+    // o documento, que muda sempre, vem depois. Ajuda quando vários cupons ou faturas são enviados em seguida.
+    system: [
+      { type: "text", text: INSTRUCOES, ...CACHE },
+      ...(produtosConhecidos.length
+        ? [
+            {
+              type: "text",
+              text: `Produtos que este usuário já comprou. Se um item do cupom for um deles, use exatamente o mesmo nome_canonico:\n${produtosConhecidos.join("\n")}`,
+              ...CACHE,
+            },
+          ]
+        : []),
+    ],
     output_config: {
       effort: documento.tipo === "TEXTO" ? "low" : "medium",
       format: betaZodOutputFormat(esquemaExtracao(nomesCategorias)),
@@ -67,14 +80,6 @@ export async function extrairTransacoes(documento, nomesCategorias, produtosConh
             type: "text",
             text: `Tipo informado pelo usuário: ${ROTULOS[documento.tipo]}. Data de hoje: ${hojeISO()}.`,
           },
-          ...(produtosConhecidos.length
-            ? [
-                {
-                  type: "text",
-                  text: `Produtos que este usuário já comprou. Se um item for um deles, use exatamente o mesmo nome_canonico:\n${produtosConhecidos.join("\n")}`,
-                },
-              ]
-            : []),
         ],
       },
     ],

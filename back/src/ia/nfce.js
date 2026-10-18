@@ -1,7 +1,7 @@
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { config } from "../config.js";
-import { FALLBACK, clienteIa, registrarUso, verificarResposta } from "./cliente.js";
+import { CACHE, FALLBACK, clienteIa, registrarUso, verificarResposta } from "./cliente.js";
 
 const INSTRUCOES = `Você organiza compras do Bolso, um app brasileiro de controle de gastos.
 Recebe a loja e os itens de um cupom fiscal eletrônico (NFC-e), já lidos do site da SEFAZ.
@@ -26,16 +26,19 @@ export async function organizarCompra(usuarioId, { loja, itens }, nomesCategoria
   if (config.ia.mock) return null;
 
   const lista = itens.map((descricao, i) => `${i}. ${descricao}`).join("\n");
-  const conhecidos = produtosConhecidos.length
-    ? `\n\nProdutos que o usuário já comprou:\n${produtosConhecidos.join("\n")}`
-    : "";
   const resposta = await clienteIa().beta.messages.parse({
     model: config.ia.modeloRapido,
     max_tokens: 8000,
     ...FALLBACK,
-    system: INSTRUCOES,
+    // Instruções e produtos já vistos ficam no cache: ajuda quando vários cupons são lidos em seguida
+    system: [
+      { type: "text", text: INSTRUCOES, ...CACHE },
+      ...(produtosConhecidos.length
+        ? [{ type: "text", text: `Produtos que o usuário já comprou:\n${produtosConhecidos.join("\n")}`, ...CACHE }]
+        : []),
+    ],
     output_config: { effort: "low", format: betaZodOutputFormat(esquema(nomesCategorias)) },
-    messages: [{ role: "user", content: `Loja: ${loja}\n\nItens:\n${lista || "(nenhum item novo)"}${conhecidos}` }],
+    messages: [{ role: "user", content: `Loja: ${loja}\n\nItens:\n${lista || "(nenhum item novo)"}` }],
   });
   await registrarUso(usuarioId, "nfce", resposta);
   const { categoria, itens: nomeados } = verificarResposta(resposta);

@@ -8,23 +8,33 @@ export function clienteIa() {
   return cliente;
 }
 
-// US$ por milhão de tokens (entrada, saída). Atualize se os preços mudarem.
+// US$ por milhão de tokens: entrada, saída e leitura do cache. Atualize se os preços mudarem.
+// Gravar no cache (5 minutos) custa 1,25x a entrada; ler custa bem menos que a entrada normal.
 const PRECOS = {
-  "claude-opus-5-5": [4, 20],
-  "claude-sonnet-5-5": [2, 10],
-  "claude-haiku-5-5": [0.1, 0.5],
+  "claude-opus-5-5": { entrada: 4, saida: 20, leituraCache: 0.2 },
+  "claude-sonnet-5-5": { entrada: 2, saida: 10, leituraCache: 0.2 },
+  "claude-haiku-5-5": { entrada: 0.1, saida: 0.5, leituraCache: 0.01 },
 };
 
 export function calcularCustoUsd(modelo, usage) {
-  const [entrada, saida] = PRECOS[modelo] ?? [0, 0];
-  const tokensEntrada =
-    usage.input_tokens + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+  const preco = PRECOS[modelo] ?? { entrada: 0, saida: 0, leituraCache: 0 };
+  const gravados = usage.cache_creation_input_tokens ?? 0;
+  const lidos = usage.cache_read_input_tokens ?? 0;
   return {
-    tokensEntrada,
+    tokensEntrada: usage.input_tokens + gravados + lidos,
     tokensSaida: usage.output_tokens,
-    custoUsd: (tokensEntrada * entrada + usage.output_tokens * saida) / 1_000_000,
+    custoUsd:
+      (usage.input_tokens * preco.entrada +
+        gravados * preco.entrada * 1.25 +
+        lidos * preco.leituraCache +
+        usage.output_tokens * preco.saida) /
+      1_000_000,
   };
 }
+
+// Marca o fim de um bloco que se repete entre chamadas: por 5 minutos, a próxima chamada com o
+// mesmo começo lê esse trecho do cache, bem mais barato. Abaixo do tamanho mínimo, a API só ignora.
+export const CACHE = { cache_control: { type: "ephemeral" } };
 
 export async function registrarUso(usuarioId, tarefa, resposta) {
   const custo = resposta.usage

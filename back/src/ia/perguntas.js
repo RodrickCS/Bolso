@@ -2,7 +2,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { config } from "../config.js";
 import { semAcentos } from "../servicos/texto.js";
-import { FALLBACK, clienteIa, registrarUso, verificarResposta } from "./cliente.js";
+import { CACHE, FALLBACK, clienteIa, registrarUso, verificarResposta } from "./cliente.js";
 
 const INSTRUCOES = `Você traduz perguntas sobre gastos pessoais em filtros de busca para o Bolso, um app brasileiro de controle de gastos.
 Você NÃO responde a pergunta nem vê os lançamentos: só preenche os filtros. O app faz as contas.
@@ -61,7 +61,8 @@ export async function interpretarPergunta(usuarioId, pergunta, { hoje, nomesCate
     model: config.ia.modeloRapido,
     max_tokens: 2000,
     ...FALLBACK,
-    system: INSTRUCOES,
+    // Numa conversa as perguntas vêm em seguida: as instruções ficam no cache e só a pergunta é nova
+    system: [{ type: "text", text: INSTRUCOES, ...CACHE }],
     output_config: { effort: "low", format: betaZodOutputFormat(esquema(nomesCategorias)) },
     messages: [{ role: "user", content: `Hoje é ${hoje}.\n\nPergunta: ${pergunta}` }],
   });

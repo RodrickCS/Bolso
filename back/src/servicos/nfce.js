@@ -48,7 +48,7 @@ export async function extracaoNfce(documento) {
         usuarioId,
         { loja, itens: novos },
         categorias.map((c) => c.nome),
-        produtos.map((p) => p.nomeCanonico),
+        produtos.map((p) => p.nomeCanonico).reverse(),
       );
       categoria = organizado?.categoria ?? null;
       novos.forEach((descricao, i) => organizado?.nomes.has(i) && nomes.set(descricao, organizado.nomes.get(i)));

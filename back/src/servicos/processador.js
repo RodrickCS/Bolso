@@ -51,7 +51,9 @@ export async function processarDocumento(documento) {
         documento.tipo === "CUPOM"
           ? await prisma.produto.findMany({ where: { usuarioId: documento.usuarioId }, orderBy: { id: "desc" }, take: 150 })
           : [];
-      extracao = await extrairTransacoes(documentoParaIa(documento), categorias.map((c) => c.nome), produtos.map((p) => p.nomeCanonico));
+      // Mais antigos primeiro: produto novo entra no fim da lista, e o começo do bloco no cache não muda
+      const nomesProdutos = produtos.map((p) => p.nomeCanonico).reverse();
+      extracao = await extrairTransacoes(documentoParaIa(documento), categorias.map((c) => c.nome), nomesProdutos);
     }
     await salvarExtracao(documento, extracao);
     await prisma.documento.update({
