@@ -11,9 +11,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E8F5EE",
+        "backgroundColor": "#1a8a5c",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.rodrickcs.bolso",
@@ -40,6 +39,14 @@
           "cameraPermission": "O Bolso usa a câmera para ler o QR Code dos cupons fiscais.",
           "microphonePermission": false,
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1a8a5c",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
         }
       ]
     ],

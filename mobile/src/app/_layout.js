@@ -1,10 +1,20 @@
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { Abertura } from "../componentes/abertura";
 import { ProvedorAvisos } from "../componentes/avisos";
 import { ProvedorSessao, useSessao } from "../lib/sessao";
 import { cores } from "../lib/tema";
 
+// A splash nativa fica na tela até a abertura animada assumir o lugar dela
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 const comCabecalho = { headerShown: true, headerStyle: { backgroundColor: cores.fundo }, headerShadowVisible: false };
+
+function AberturaDaSessao() {
+  const { carregando } = useSessao();
+  return <Abertura pronto={!carregando} />;
+}
 
 function Rotas() {
   const { logado, carregando } = useSessao();
@@ -35,6 +45,7 @@ export default function Layout() {
       <ProvedorAvisos>
         <StatusBar style="dark" />
         <Rotas />
+        <AberturaDaSessao />
       </ProvedorAvisos>
     </ProvedorSessao>
   );
